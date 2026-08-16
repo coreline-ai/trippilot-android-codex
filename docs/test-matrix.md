@@ -17,6 +17,7 @@
 |---|---|---|---|---|
 | T-FOUNDATION-01 | unit test, lint, debug APK | `./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon` | PASS | 2026-08-16, exit 0; `app-debug.apk` 생성 |
 | T-FOUNDATION-02 | OpenMinis/Grok/credential/raw CLI 경계 검색 | `python3 scripts/verify_phase1_independence.py` | PASS | 2026-08-16, exit 0; source·Gradle OpenMinis/Grok 0건, Port 금지 field 0건 |
+| T-FOUNDATION-03 | clean checkout independent build | `git clone --no-local` 후 `ANDROID_HOME=... ./gradlew assembleDebug --no-daemon` | PASS | 2026-08-16, `/private/tmp/trippilot-phase1-clean.P4yhzv`; exit 0 + Phase 0/1 verifier PASS |
 | T-RUNTIME-FAKE-01 | fake runtime 로그인·연결·로그아웃·stream 거부/완료 | `FakeCodexRuntimeTest` via `testDebugUnitTest` | PASS | 2026-08-16, 3 unit tests passed |
 | T-RUNTIME-UI-01 | Compose runtime 화면, fake login/complete/logout | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest --no-daemon` | PASS | 2026-08-16, TripPilot_API_26 (API 26 arm64) 1/1 passed |
 | T-VISUAL-01 | light/dark component smoke | emulator `screencap` | PASS | `app/build/reports/qa/phase1-light.png`, `phase1-dark.png`; RouteRibbon, SVG empty state, Violet status 확인 |
