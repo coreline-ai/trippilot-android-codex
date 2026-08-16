@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" role="img" aria-labelledby="title desc">
+  <title id="title">No trips yet</title>
+  <desc id="desc">An empty field journal page with a route line inviting the user to create a trip.</desc>
+  <rect x="45" y="16" width="150" height="128" rx="18" fill="#D6E4F4"/>
+  <path d="M77 48h86M77 73h52" stroke="#10243F" stroke-linecap="round" stroke-width="8"/>
+  <path d="M77 106c22 0 19-22 42-22 16 0 15 25 42 25" fill="none" stroke="#16A8B8" stroke-linecap="round" stroke-width="8"/>
+  <circle cx="161" cy="109" r="9" fill="#F26A3D"/>
+</svg>

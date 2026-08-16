@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="72" viewBox="0 0 320 72" role="img" aria-labelledby="title desc">
+  <title id="title">Route Ribbon</title>
+  <desc id="desc">A progress route with an approved waypoint, a current waypoint, and a planned arrival.</desc>
+  <path d="M22 48C74 48 67 21 124 21s54 29 111 29c31 0 42-13 63-13" fill="none" stroke="#D6E4F4" stroke-linecap="round" stroke-width="14"/>
+  <path d="M22 48C74 48 67 21 124 21s54 29 111 29" fill="none" stroke="#16A8B8" stroke-linecap="round" stroke-width="14"/>
+  <circle cx="22" cy="48" r="12" fill="#25785C"/>
+  <path d="m16 48 4 4 8-10" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+  <circle cx="124" cy="21" r="12" fill="#10243F" stroke="#F5F8FA" stroke-width="4"/>
+  <circle cx="235" cy="50" r="12" fill="#F26A3D"/>
+  <circle cx="298" cy="37" r="10" fill="#E0E7ED" stroke="#697783" stroke-width="3"/>
+</svg>

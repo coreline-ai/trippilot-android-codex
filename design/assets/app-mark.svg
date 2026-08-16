@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">TripPilot app mark</title>
+  <desc id="desc">A navy route line passes through a cyan waypoint toward an orange arrival point.</desc>
+  <rect width="128" height="128" rx="32" fill="#10243F"/>
+  <path d="M28 89C43 89 43 40 65 40c16 0 12 45 33 45" fill="none" stroke="#72D8E1" stroke-linecap="round" stroke-width="12"/>
+  <circle cx="65" cy="40" r="13" fill="#F5F8FA"/>
+  <circle cx="98" cy="85" r="14" fill="#F26A3D"/>
+  <path d="m92 85 4 4 8-10" fill="none" stroke="#381002" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" role="img" aria-labelledby="title desc">
+  <title id="title">AI connection required</title>
+  <desc id="desc">A violet draft card is separated from a navy device by a deliberate approval gap.</desc>
+  <rect x="29" y="42" width="70" height="76" rx="14" fill="#1A3655"/>
+  <rect x="141" y="28" width="70" height="76" rx="14" fill="#C5BFFF"/>
+  <path d="M50 66h28M50 84h18" stroke="#D6E4F4" stroke-linecap="round" stroke-width="7"/>
+  <path d="M160 52h31M160 70h21" stroke="#292454" stroke-linecap="round" stroke-width="7"/>
+  <path d="M103 80h30" stroke="#697783" stroke-dasharray="6 8" stroke-linecap="round" stroke-width="6"/>
+  <circle cx="121" cy="80" r="12" fill="#F26A3D"/>
+  <path d="m116 80 4 4 8-10" fill="none" stroke="#381002" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" role="img" aria-labelledby="title desc">
+  <title id="title">No itinerary items</title>
+  <desc id="desc">A quiet timeline with an open future waypoint.</desc>
+  <path d="M76 28v104" stroke="#10243F" stroke-linecap="round" stroke-width="8"/>
+  <circle cx="76" cy="48" r="13" fill="#25785C"/>
+  <path d="m70 48 4 4 8-10" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+  <circle cx="76" cy="104" r="13" fill="#F5F8FA" stroke="#16A8B8" stroke-width="6"/>
+  <path d="M108 48h58M108 104h42" stroke="#697783" stroke-linecap="round" stroke-width="8"/>
+</svg>
