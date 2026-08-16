@@ -33,3 +33,21 @@
 | AI 계약 | local fake runtime | T-DRAFT-PARTIAL-APPLY-01, T-DRAFT-RESERVATION-01, T-WEATHER-READONLY-01 |
 | Codex OAuth | arm64 real device, user-approved test account | OAuth start/cancel/return/logout/stream-stop |
 | release QA | emulator + arm64 device | light/dark, 1.0/1.3/2.0x, TalkBack, process recreation, clean install |
+# Test matrix
+
+| Phase | Date | Scope | Command / evidence | Result |
+|---|---|---|---|---|
+| P0 | 2026-08-16 | Token contrast, local asset manifest, parity traces | `python3 scripts/verify_phase0_design.py` | PASS |
+| P1 | 2026-08-16 | Independent foundation / no forbidden runtime boundary | `python3 scripts/verify_phase1_independence.py` | PASS |
+| P1 | 2026-08-16 | JVM unit, lint, debug APK | `./gradlew testDebugUnitTest lintDebug assembleDebug` | PASS |
+| P1 | 2026-08-16 | Emulator UI smoke | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest` | PASS |
+| P2 | 2026-08-16 | Local-only static boundary: no INTERNET, only text/plain share, no browser/map/localhost or data-store secret path | `python3 scripts/verify_phase2_local_first.py` | PASS |
+| P2 | 2026-08-16 | Domain validation, templates, reminder policy, backup size/schema/version/legacy public mapping | `./gradlew testDebugUnitTest` | PASS |
+| P2 | 2026-08-16 | Room CRUD, duplicate reservation/source, recheck upsert/history, itinerary source/calendar cascade, share cancel/expiry, default preservation; text/plain-only intent routing; backup new-ID nested restore | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest` | PASS (5 tests) |
+| P2 | 2026-08-16 | Local UI flow: empty list → create trip → itinerary → Preparation → Packing → reservation → source → recreate → delete confirmation | `MainActivitySmokeTest` on `TripPilot_API_26` | PASS |
+| P2 | 2026-08-16 | Light/dark visual smoke, compact emulator | `app/build/reports/qa/phase2-light.png`, `phase2-dark.png` | PASS after disabling Android force-dark |
+
+## Notes
+
+- P2 dark screenshot must be driven with `adb shell cmd uimode night yes`; writing the secure setting alone produced an intermediate, non-authoritative frame on API 26.
+- PD20 direct connected UI test remains a separate device-activity-resume limitation recorded in Phase 1; P2's gate uses the reproducible `TripPilot_API_26` emulator.

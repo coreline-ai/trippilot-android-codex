@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -159,6 +161,31 @@ fun EmptyState(
         Spacer(Modifier.height(4.dp))
         Text(body, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
     }
+}
+
+@Composable
+fun ConfirmActionSheet(
+    title: String,
+    body: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AlertDialog(
+        modifier = modifier.testTag("confirm_action_sheet"),
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(body) },
+        confirmButton = {
+            Button(onClick = onConfirm, modifier = Modifier.testTag("confirm_action")) {
+                Text(confirmLabel)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
+        },
+    )
 }
 
 @Preview(showBackground = true, widthDp = 360)

@@ -54,6 +54,12 @@ kotlin {
     }
 }
 
+kapt {
+    arguments {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
