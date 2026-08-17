@@ -1,0 +1,88 @@
+{
+  "schema": "trippilot-design-qa/v1",
+  "viewports": [
+    {"id": "compact", "widthDp": 360, "role": "golden+matrix"},
+    {"id": "medium", "widthDp": 600, "role": "matrix"},
+    {"id": "expanded", "widthDp": 840, "role": "matrix"}
+  ],
+  "themes": ["light", "dark"],
+  "fontScales": [1.0, 1.3, 2.0],
+  "golden": {
+    "widthDp": 360,
+    "theme": "light",
+    "fontScale": 1.0,
+    "minApi": 28,
+    "files": [
+      "01-trip-list-empty.png",
+      "02-trip-summary.png",
+      "03-draft-review.png",
+      "04-external-confirmation.png",
+      "05-itinerary.png",
+      "06-readiness.png"
+    ],
+    "requiredExisting": [
+      "01-trip-list-empty.png",
+      "02-trip-summary.png",
+      "03-draft-review.png",
+      "04-external-confirmation.png"
+    ]
+  },
+  "touch": {
+    "minTargetDp": 48,
+    "primaryActionMinDp": 52
+  },
+  "severity": {
+    "P1": [
+      "token-runtime mismatch",
+      "required golden failure",
+      "contrast below tokens.json",
+      "external action before approval",
+      "required capture missing",
+      "physical instrumentation attempted"
+    ],
+    "P2": [
+      "cta or date clipped at 2.0x or dark",
+      "touch target below minimum",
+      "sheet footer unreachable",
+      "talkback order broken"
+    ],
+    "P3": [
+      "600/840 alignment",
+      "contact sheet micro difference",
+      "copy wording"
+    ]
+  },
+  "tokenMap": {
+    "colorScheme": {
+      "primary": "primary",
+      "onPrimary": "onPrimary",
+      "primaryContainer": "primaryContainer",
+      "onPrimaryContainer": "onPrimaryContainer",
+      "secondary": "wayfinding",
+      "onSecondary": "onWayfinding",
+      "tertiary": "ai",
+      "onTertiary": "onAi",
+      "error": "error",
+      "onError": "onError",
+      "surface": "surface",
+      "onSurface": "onSurface",
+      "surfaceVariant": "surfaceVariant",
+      "onSurfaceVariant": "onSurfaceVariant",
+      "outline": "outline"
+    },
+    "shapes": {
+      "smallDp": 14,
+      "largeDp": 20,
+      "extraLargeDp": 28,
+      "actionDp": 14,
+      "heroDp": 28
+    },
+    "exceptions": [
+      "boarding is PrimaryAction color, not a ColorScheme field",
+      "success dark #7ED7AF is not in MaterialTheme",
+      "StatusChip may use extraLarge 28 instead of chip 999",
+      "hero scrim and hero text are theme-only",
+      "secondaryContainer is theme-only"
+    ]
+  }
+}

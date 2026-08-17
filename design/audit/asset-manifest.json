@@ -1,0 +1,60 @@
+{
+  "schema": "trippilot-asset-manifest/v1",
+  "sourceOfTruth": "docs/asset-manifest.md",
+  "assets": [
+    {
+      "id": "app-mark",
+      "source": "design/assets/app-mark.svg",
+      "runtime": null,
+      "kind": "vector-source"
+    },
+    {
+      "id": "route-ribbon",
+      "source": "design/assets/route-ribbon.svg",
+      "runtime": null,
+      "kind": "legacy-reference"
+    },
+    {
+      "id": "empty-trips",
+      "source": "design/assets/empty-trips.svg",
+      "runtime": "app/src/main/res/drawable/trippilot_empty_trips.xml",
+      "kind": "vector"
+    },
+    {
+      "id": "empty-itinerary",
+      "source": "design/assets/empty-itinerary.svg",
+      "runtime": "app/src/main/res/drawable/trippilot_empty_itinerary.xml",
+      "kind": "vector"
+    },
+    {
+      "id": "empty-readiness",
+      "source": "design/assets/empty-readiness.svg",
+      "runtime": "app/src/main/res/drawable/trippilot_empty_readiness.xml",
+      "kind": "vector"
+    },
+    {
+      "id": "empty-reservations",
+      "source": "design/assets/empty-reservations.svg",
+      "runtime": "app/src/main/res/drawable/trippilot_empty_reservations.xml",
+      "kind": "vector"
+    },
+    {
+      "id": "empty-sources",
+      "source": "design/assets/empty-sources.svg",
+      "runtime": "app/src/main/res/drawable/trippilot_empty_sources.xml",
+      "kind": "vector"
+    },
+    {
+      "id": "ai-connection-required",
+      "source": "design/assets/ai-connection-required.svg",
+      "runtime": "app/src/main/res/drawable/trippilot_ai_connection_required.xml",
+      "kind": "vector"
+    },
+    {
+      "id": "hero-field-route",
+      "source": "app/src/main/res/drawable-nodpi/trippilot_field_route_hero_v1.png",
+      "runtime": "app/src/main/res/drawable-nodpi/trippilot_field_route_hero_v1.png",
+      "kind": "approved-raster"
+    }
+  ]
+}

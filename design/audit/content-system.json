@@ -1,0 +1,108 @@
+{
+  "schema": "trippilot-content-system/v1",
+  "sourceOfTruth": "design/screen-map.md",
+  "areas": [
+    {
+      "id": "journey",
+      "label": "여정",
+      "testTag": "trip_area_journey",
+      "pages": [
+        {
+          "id": "briefing",
+          "label": "브리핑",
+          "testTag": "trip_subpage_journey_summary",
+          "screenTag": "trip_briefing_screen",
+          "primaryAction": "briefing_next_action",
+          "states": ["empty", "populated"]
+        },
+        {
+          "id": "itinerary",
+          "label": "일정",
+          "testTag": "trip_subpage_journey_itinerary",
+          "screenTag": "trip_detail_screen",
+          "primaryAction": "add_itinerary",
+          "states": ["empty", "populated", "form"]
+        }
+      ]
+    },
+    {
+      "id": "prepare",
+      "label": "준비",
+      "testTag": "trip_area_prepare",
+      "pages": [
+        {
+          "id": "readiness",
+          "label": "준비",
+          "testTag": "readiness_screen",
+          "screenTag": "readiness_screen",
+          "primaryAction": "add_preparation",
+          "states": ["empty", "populated", "form"]
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "label": "보관함",
+      "testTag": "trip_area_storage",
+      "pages": [
+        {
+          "id": "reservations",
+          "label": "예약",
+          "testTag": "trip_subpage_storage_reservations",
+          "screenTag": "trip_detail_screen",
+          "primaryAction": "add_reservation",
+          "states": ["empty", "populated", "form"]
+        },
+        {
+          "id": "sources",
+          "label": "출처",
+          "testTag": "trip_subpage_storage_sources",
+          "screenTag": "trip_detail_screen",
+          "primaryAction": "add_source_itinerary",
+          "states": ["empty", "populated", "form"]
+        }
+      ]
+    },
+    {
+      "id": "help",
+      "label": "도움",
+      "testTag": "trip_area_help",
+      "pages": [
+        {
+          "id": "drafts",
+          "label": "AI 초안",
+          "testTag": "trip_subpage_help_drafts",
+          "screenTag": "draft_planner_screen",
+          "primaryAction": "create_fake_draft",
+          "states": ["empty", "review"]
+        },
+        {
+          "id": "external",
+          "label": "외부 실행",
+          "testTag": "trip_subpage_help_external",
+          "screenTag": "external_actions_section",
+          "primaryAction": "backup_export_review",
+          "states": ["populated", "approval"]
+        }
+      ]
+    }
+  ],
+  "shell": {
+    "list": "trip_list_screen",
+    "detail": "trip_detail_screen",
+    "scaffold": "trip_brief_scaffold",
+    "form": "trip_form_sheet",
+    "approval": "approval_sheet",
+    "empty": "empty_state"
+  },
+  "journeyCaptures": [
+    "01-list-featured.png",
+    "02-summary.png",
+    "03-itinerary.png",
+    "04-readiness.png",
+    "05-reservations.png",
+    "06-sources.png",
+    "07-draft-review.png",
+    "08-external-confirmation.png"
+  ]
+}

@@ -84,6 +84,24 @@ def main() -> None:
         image_path = ROOT / "app/src/androidTest/assets/screenshot-goldens" / image
         if not image_path.is_file() or image_path.stat().st_size < 1024:
             fail(f"approved screenshot golden missing: {image}")
+    for relative in (
+        "design/audit/content-system.json",
+        "design/audit/design-qa.config.json",
+        "design/audit/asset-manifest.json",
+        "design/audit/design-review.json",
+        "scripts/verify_design_contract.py",
+        "scripts/sync_design_run_state.py",
+        "scripts/run_android_design_qa.sh",
+        ".grok/skills/trippilot-design-loop/SKILL.md",
+    ):
+        if not (ROOT / relative).is_file():
+            fail(f"design-loop contract missing: {relative}")
+    design_qa_runner = read("scripts/run_android_design_qa.sh")
+    if "Refusing non-emulator" not in design_qa_runner:
+        fail("design QA runner must refuse non-emulator serials")
+    loop_skill = read(".grok/skills/trippilot-design-loop/SKILL.md")
+    if "emulator-*" not in loop_skill or "install -r" not in loop_skill:
+        fail("design-loop skill must force emulator-* and user-device install -r only")
     for profile_name in ("baseline-prof.txt", "startup-prof.txt"):
         profile = ROOT / "app/src/main/generated/baselineProfiles" / profile_name
         if not profile.is_file() or profile.stat().st_size < 20_000:

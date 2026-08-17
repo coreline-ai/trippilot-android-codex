@@ -1,0 +1,20 @@
+{
+  "schema": "trippilot-design-review/v1",
+  "approvedBy": null,
+  "approvedAt": null,
+  "screens": {
+    "list-empty": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
+    "briefing": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
+    "itinerary": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
+    "readiness": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
+    "reservations": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
+    "sources": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
+    "draft-review": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
+    "external-confirmation": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false}
+  },
+  "issues": {
+    "P1": [],
+    "P2": [],
+    "P3": []
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "skill": "dev-plan-v2",
+  "upstream_name": "parallel-dev-plan-orchestrator",
+  "repository": "https://github.com/coreline-ai/dev-plan-v2",
+  "commit": "1706a74613dea88830d543695eeed2269e0aaf97",
+  "commit_date": "2026-08-16T11:44:43+09:00",
+  "installed_at": "2026-08-17T09:47:52.836312+00:00",
+  "install_path": ".grok/skills/dev-plan-v2",
+  "notes": "Official 14-file runtime package. Directory name is dev-plan-v2; SKILL.md name remains parallel-dev-plan-orchestrator."
+}

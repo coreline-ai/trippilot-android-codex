@@ -1,0 +1,76 @@
+{
+  "schema": "codex-skill-package-manifest/v1",
+  "skill": "parallel-dev-plan-orchestrator",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "5ef319598d89291f20f3379e20dff45e9e3c2ecd931eb0d393d7b7eb05e9d716",
+      "bytes": 9815
+    },
+    {
+      "path": "agents/openai.yaml",
+      "sha256": "74d9eeff96ea29428fc92c3c9a10bc010edec344a3057646a040889e301b9c85",
+      "bytes": 621
+    },
+    {
+      "path": "references/dev-lesson-adapter.md",
+      "sha256": "084335e05b8ef9425cfa97cbaf5b19c50407cecaa175db40c92ebc12b04f2b23",
+      "bytes": 6073
+    },
+    {
+      "path": "references/parallel-execution-workflow.md",
+      "sha256": "4d01365486e2bc75d2dbed0905a08faa9fde91e0dc8f2050abde36929fbcf50a",
+      "bytes": 6019
+    },
+    {
+      "path": "references/parallel-plan-format.md",
+      "sha256": "bb538c982f18fa692b3f96e344ef4e502e9dd1d6ee91d5b58f3dec2127c96e52",
+      "bytes": 5518
+    },
+    {
+      "path": "scripts/assess_parallelism.py",
+      "sha256": "3727e067b8ed9b48602bda51c2fb5466532c56e3f3b9c2956f78a5fdf6679553",
+      "bytes": 1446
+    },
+    {
+      "path": "scripts/check_dev_lesson_tool.py",
+      "sha256": "adbc9815031e2437c967262047090511243cd74066e61c6ca8561a03d7727187",
+      "bytes": 3680
+    },
+    {
+      "path": "scripts/check_parallel_scope.py",
+      "sha256": "21a0a85e4350500d9d58fcdc352120b56679bdb7a3594a5ce70117474a4eff84",
+      "bytes": 7785
+    },
+    {
+      "path": "scripts/execution_ledger.py",
+      "sha256": "7729318cf930dc0907b26913e8be3921d7a4052f13178284beb676288e17e313",
+      "bytes": 14452
+    },
+    {
+      "path": "scripts/execution_outcomes.py",
+      "sha256": "d026c497d6392cb1bf59c4bac985e20ce2d117f4c7ac349d7a7534a65e466842",
+      "bytes": 29787
+    },
+    {
+      "path": "scripts/new_parallel_dev_plan.py",
+      "sha256": "4098d1c549bbc32c34280d36c1b14dd6679ae9965f1ba759d8665bfdbffe40a8",
+      "bytes": 5064
+    },
+    {
+      "path": "scripts/parallel_plan_lib.py",
+      "sha256": "efd1ba350cea65a1c74c193e38479b275887b5863e05040319e4561c05da3550",
+      "bytes": 24439
+    },
+    {
+      "path": "scripts/preflight_parallel_exec.py",
+      "sha256": "cf98d1a5b8864b569b7aff2826f9ca42cbf486ecb1c44bcd1ce7afa6cea5acef",
+      "bytes": 4857
+    },
+    {
+      "path": "scripts/validate_parallel_dev_plan.py",
+      "sha256": "24ce7603c58aa1e72ad9edc086ae24be912241e0aad7fea73e8a335396529f14",
+      "bytes": 2955
+    }
+  ]
+}

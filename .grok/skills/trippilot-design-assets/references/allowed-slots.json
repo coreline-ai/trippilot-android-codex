@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "sourceOfTruth": "docs/asset-manifest.md",
+  "slots": [
+    {
+      "id": "empty-readiness",
+      "kind": "vector",
+      "role": "준비/짐 empty illustration",
+      "source": "design/assets/empty-readiness.svg",
+      "android": "app/src/main/res/drawable/trippilot_empty_readiness.xml",
+      "drawable": "trippilot_empty_readiness",
+      "screens": ["readiness empty preparation", "readiness empty packing"]
+    },
+    {
+      "id": "empty-reservations",
+      "kind": "vector",
+      "role": "보관함 예약 empty illustration",
+      "source": "design/assets/empty-reservations.svg",
+      "android": "app/src/main/res/drawable/trippilot_empty_reservations.xml",
+      "drawable": "trippilot_empty_reservations",
+      "screens": ["storage empty reservations"]
+    },
+    {
+      "id": "empty-sources",
+      "kind": "vector",
+      "role": "보관함 출처 empty illustration",
+      "source": "design/assets/empty-sources.svg",
+      "android": "app/src/main/res/drawable/trippilot_empty_sources.xml",
+      "drawable": "trippilot_empty_sources",
+      "screens": ["storage empty sources"]
+    }
+  ],
+  "out_of_scope": [
+    "hero-field-route replacement",
+    "empty-drafts",
+    "onboarding-local-first",
+    "functional Material Symbol icons",
+    "city photos",
+    "map tiles",
+    "remote rasters"
+  ]
+}
