@@ -28,6 +28,16 @@ def load(path: Path) -> dict:
     raise AssertionError
 
 
+STATIC_SLOP_GATES = (
+    "3-inline-literals",
+    "4-repeated-surface-rhythm",
+    "5-multiple-primary-actions",
+    "10-infinite-animation",
+    "12-ellipsis-on-utility-text",
+    "15-content-system-registration",
+)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=str(ROOT))
@@ -35,7 +45,6 @@ def main() -> int:
     parser.add_argument("--qa-config", default="design/audit/design-qa.config.json")
     parser.add_argument("--evidence", help="optional JSON with test/capture flags")
     parser.add_argument("--out-dir", default=str(DEFAULT_OUT))
-    parser.add_argument("--allow-stale", action="store_true")
     args = parser.parse_args()
     root = Path(args.root)
     review = load(root / args.review)
@@ -49,11 +58,6 @@ def main() -> int:
     }
 
     out_dir = Path(args.out_dir)
-    if out_dir.exists() and not args.allow_stale:
-        stale = out_dir / "RUN_STATE.json"
-        if stale.is_file() and not args.evidence:
-            # Regenerating in place is fine; callers must pass fresh evidence for a new run.
-            pass
 
     issues = {
         "P1": list(review.get("issues", {}).get("P1", [])),
@@ -70,6 +74,16 @@ def main() -> int:
     if evidence.get("goldenVerify") == "fail":
         issues["P1"].append("required golden failure")
         blockers.append("goldenVerify")
+
+    # Static slop gates (hallmark-guide.md §4) are deterministic; a failed or
+    # unrecorded static gate is a P2 block. Visual gates stay pending until a
+    # human approves the screens — that is handled by the screens map below.
+    slop_gates = review.get("slopGates", {})
+    for key in STATIC_SLOP_GATES:
+        status = slop_gates.get(key, "missing")
+        if status != "pass":
+            issues["P2"].append(f"slop gate {key} {status}")
+            blockers.append(f"slop:{key}")
 
     required_goldens = qa["golden"]["requiredExisting"]
     present = set(evidence.get("captures", []))

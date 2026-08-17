@@ -41,7 +41,20 @@ def run(review: dict, evidence: dict, extra: list[str] | None = None) -> tuple[i
         return completed.returncode, state
 
 
-def approved_review(issues: dict | None = None) -> dict:
+def slop_gates(**overrides: str) -> dict:
+    gates = {key: "pass" for key in (
+        "3-inline-literals",
+        "4-repeated-surface-rhythm",
+        "5-multiple-primary-actions",
+        "10-infinite-animation",
+        "12-ellipsis-on-utility-text",
+        "15-content-system-registration",
+    )}
+    gates.update(overrides)
+    return gates
+
+
+def approved_review(issues: dict | None = None, gates: dict | None = None) -> dict:
     screens = {
         name: {
             "composition": "pass",
@@ -62,7 +75,12 @@ def approved_review(issues: dict | None = None) -> dict:
             "external-confirmation",
         )
     }
-    return {"schema": "trippilot-design-review/v1", "screens": screens, "issues": issues or {"P1": [], "P2": [], "P3": []}}
+    return {
+        "schema": "trippilot-design-review/v1",
+        "screens": screens,
+        "slopGates": gates if gates is not None else slop_gates(),
+        "issues": issues or {"P1": [], "P2": [], "P3": []},
+    }
 
 
 def evidence(**overrides: object) -> dict:
@@ -97,6 +115,14 @@ def main() -> int:
     physical_code, _ = run(approved_review(), evidence(physicalInstrumentation=True))
     if physical_code == 0:
         raise SystemExit("physical instrumentation must block")
+
+    slop_fail_code, slop_fail_state = run(approved_review(gates=slop_gates(**{"3-inline-literals": "fail"})), evidence())
+    if slop_fail_code == 0 or slop_fail_state.get("status") != "blocked":
+        raise SystemExit("failed static slop gate must block")
+
+    slop_missing_code, _ = run(approved_review(gates={}), evidence())
+    if slop_missing_code == 0:
+        raise SystemExit("unrecorded static slop gate must block")
 
     notes_code, notes_state = run(approved_review({"P1": [], "P2": [], "P3": ["600dp alignment"]}), evidence())
     if notes_code != 0 or notes_state.get("status") != "passed-with-notes":

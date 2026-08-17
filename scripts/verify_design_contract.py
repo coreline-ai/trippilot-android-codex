@@ -22,6 +22,12 @@ SCREEN_MAP = ROOT / "design/screen-map.md"
 ASSET_DOC = ROOT / "docs/asset-manifest.md"
 TEST_TOKENS = ROOT / "app/src/androidTest/assets/design-tokens.json"
 SKILL = ROOT / ".grok/skills/trippilot-design-loop/SKILL.md"
+GUIDE = ROOT / "design/hallmark-guide.md"
+UI_SOURCE_DIRS = (
+    ROOT / "app/src/main/kotlin/io/trippilot/app/core/design",
+    ROOT / "app/src/main/kotlin/io/trippilot/app/feature",
+)
+FUN_HEADER = re.compile(r"^(?:@\w+\s+)?(?:private |internal |public )?fun\s+(\w+)", re.MULTILINE)
 
 
 def fail(message: str) -> None:
@@ -40,6 +46,118 @@ def hex_from_color_ctor(source: str, name: str) -> str | None:
     if match:
         return f"#{match.group(1)[2:].upper()}"
     return None
+
+
+def ui_sources() -> list[tuple[Path, str]]:
+    files: list[tuple[Path, str]] = []
+    for directory in UI_SOURCE_DIRS:
+        for path in sorted(directory.rglob("*.kt")):
+            if path.name == "TripPilotTheme.kt":
+                continue
+            files.append((path, path.read_text(encoding="utf-8")))
+    if not files:
+        fail("no UI sources found under core/design or feature")
+    return files
+
+
+def gate_inline_literals(sources: list[tuple[Path, str]]) -> None:
+    """Gate 3 — no Color(0x...) literals outside TripPilotTheme.kt."""
+    for path, source in sources:
+        for match in re.finditer(r"Color\(0x[0-9A-Fa-f]{6,8}\)", source):
+            line = source.count("\n", 0, match.start()) + 1
+            fail(f"{path.relative_to(ROOT)}:{line} inline Color literal {match.group(0)} "
+                 f"(hallmark-guide.md §gate-3: register the value in tokens.json and reference the token)")
+
+
+def gate_single_primary_action(sources: list[tuple[Path, str]]) -> None:
+    """Gate 5 — at most one PrimaryAction call per top-level function.
+
+    Preview/showcase functions are exempt: they document the eight interaction
+    states (hallmark-guide.md §3), they are not screens.
+    """
+    for path, source in sources:
+        headers = list(FUN_HEADER.finditer(source))
+        for index, header in enumerate(headers):
+            name = header.group(1)
+            if name == "PrimaryAction" or "Preview" in name or "Showcase" in name:
+                continue
+            body_start = header.end()
+            body_end = headers[index + 1].start() if index + 1 < len(headers) else len(source)
+            uses = len(re.findall(r"\bPrimaryAction\s*\(", source[body_start:body_end]))
+            if uses > 1:
+                line = source.count("\n", 0, body_start) + 1
+                fail(f"{path.relative_to(ROOT)}:{line} function {name}() has {uses} PrimaryAction calls "
+                     f"(hallmark-guide.md §gate-5: one primary action per screen)")
+
+
+def gate_no_infinite_animation(sources: list[tuple[Path, str]]) -> None:
+    """Gate 10 — no infinite/repeating animations."""
+    banned = ("rememberInfiniteTransition", "infiniteRepeatable", "RepeatMode.Restart", "RepeatMode.Reverse")
+    for path, source in sources:
+        for pattern in banned:
+            for match in re.finditer(re.escape(pattern), source):
+                line = source.count("\n", 0, match.start()) + 1
+                fail(f"{path.relative_to(ROOT)}:{line} uses {pattern} "
+                     f"(hallmark-guide.md §gate-10: no infinite or repeating animation)")
+
+
+def gate_no_ellipsis_on_utility_text(sources: list[tuple[Path, str]]) -> None:
+    """Gate 12 — monospace utility text (labelMedium) must not ellipsize."""
+    for path, source in sources:
+        for match in re.finditer(r"Text\((?:[^()]|\([^()]*\))*\)", source):
+            call = match.group(0)
+            if "TextOverflow.Ellipsis" not in call:
+                continue
+            if "labelMedium" in call or "FontFamily.Monospace" in call:
+                line = source.count("\n", 0, match.start()) + 1
+                fail(f"{path.relative_to(ROOT)}:{line} utility (monospace) text uses ellipsis "
+                     f"(hallmark-guide.md §gate-12: dates/times/codes must not hide meaning)")
+
+
+def gate_repeated_surface_rhythm(sources: list[tuple[Path, str]]) -> None:
+    """Gate 4 — no three-plus consecutive calls of the same surface component.
+
+    Structural-variety rule (hallmark-guide.md §2): information with a
+    different shape must not collapse into card-after-card. Language
+    keywords and control flow are not components. Blank lines do not break
+    a run; any other statement does.
+    """
+    keywords = {"if", "for", "while", "when", "return", "else"}
+    # Primitives and layout helpers carry no surface identity; the gate targets
+    # card/panel/document surfaces only (hallmark-guide.md §2).
+    primitives = {
+        "Text", "Spacer", "Icon", "Image", "Divider", "HorizontalDivider", "VerticalDivider",
+        "Box", "Row", "Column", "LazyColumn", "LazyRow", "Checkbox", "RadioButton", "Switch",
+        "Button", "TextButton", "OutlinedButton", "IconButton", "OutlinedTextField", "TextField",
+    }
+    for path, source in sources:
+        headers = list(FUN_HEADER.finditer(source))
+        for index, header in enumerate(headers):
+            name = header.group(1)
+            if "Preview" in name or "Showcase" in name:
+                continue
+            body_start = header.end()
+            body = source[body_start:headers[index + 1].start() if index + 1 < len(headers) else len(source)]
+            base_line = source.count("\n", 0, body_start) + 1
+            run_name: str | None = None
+            run_len = 0
+            run_line = 0
+            for offset, line in enumerate(body.splitlines()):
+                match = re.match(r"^\s*(\w+)\s*\(", line)
+                if match and match.group(1) not in keywords and match.group(1) not in primitives:
+                    call = match.group(1)
+                    if call == run_name:
+                        run_len += 1
+                        if run_len >= 3:
+                            fail(f"{path.relative_to(ROOT)}:{base_line + run_line} function {name}() calls "
+                                 f"{call}() {run_len} lines in a row "
+                                 f"(hallmark-guide.md §gate-4: break repeated surface rhythm)")
+                    else:
+                        run_name, run_len, run_line = call, 1, offset
+                elif match is None and line.strip() == "":
+                    continue
+                else:
+                    run_name, run_len = None, 0
 
 
 def main() -> int:
@@ -147,8 +265,25 @@ def main() -> int:
     required_review = set(review["screens"])
     if "list-empty" not in required_review or "itinerary" not in required_review:
         fail("design-review.json is missing required screens")
+    if "slopGates" not in review or len(review["slopGates"]) != 15:
+        fail("design-review.json must carry the 15 slopGates (hallmark-guide.md §4)")
+    if not GUIDE.is_file():
+        fail("design/hallmark-guide.md is missing")
 
-    print("PASS: tokens.json keys, theme mapping, content system, and audit contracts")
+    sources = ui_sources()
+    gate_inline_literals(sources)
+    gate_repeated_surface_rhythm(sources)
+    gate_single_primary_action(sources)
+    gate_no_infinite_animation(sources)
+    gate_no_ellipsis_on_utility_text(sources)
+
+    for area in content["areas"]:
+        for page in area.get("pages", []):
+            if not page.get("macrostructure"):
+                fail(f"content-system.json page {page['id']} is missing its macrostructure "
+                     f"(hallmark-guide.md §gate-15: register every screen)")
+
+    print("PASS: tokens.json keys, theme mapping, content system, audit contracts, slop gates 3/4/5/10/12/15")
     return 0
 
 

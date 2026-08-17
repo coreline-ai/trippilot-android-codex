@@ -78,6 +78,8 @@ Trip Briefing의 고유 장치는 `JourneyStageStrip`이다. 이 strip은 `출�
 
 ## 접근성·motion 계약
 
+> 반(反)AI-slop 세부 규율과 slop 게이트 15항은 [Hallmark 가이드](hallmark-guide.md)를 따른다.
+
 - `JourneyStageStrip`은 전체 진행 요약과 각 stage의 날짜·상태를 semantics로 제공한다. Canvas만으로 의미를 전달하지 않는다.
 - TalkBack 순서는 compact header → stage summary → purpose navigation → subpage → content → primary action이다.
 - 모든 touch control은 48dp 이상이며, 색만으로 완료/오류/AI 상태를 전달하지 않는다.

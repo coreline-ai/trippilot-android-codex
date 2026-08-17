@@ -3,14 +3,87 @@
   "approvedBy": null,
   "approvedAt": null,
   "screens": {
-    "list-empty": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
-    "briefing": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
-    "itinerary": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
-    "readiness": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
-    "reservations": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
-    "sources": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
-    "draft-review": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false},
-    "external-confirmation": {"composition": "pending", "korean_type": "pending", "spacing": "pending", "interaction": "pending", "accessibility": "pending", "approved": false}
+    "list-empty": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    },
+    "briefing": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    },
+    "itinerary": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    },
+    "readiness": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    },
+    "reservations": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    },
+    "sources": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    },
+    "draft-review": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    },
+    "external-confirmation": {
+      "composition": "pending",
+      "korean_type": "pending",
+      "spacing": "pending",
+      "interaction": "pending",
+      "accessibility": "pending",
+      "approved": false
+    }
+  },
+  "slopGates": {
+    "1-italic-headers": "pending",
+    "2-invented-copy": "pending",
+    "3-inline-literals": "pass",
+    "4-repeated-surface-rhythm": "pass",
+    "5-multiple-primary-actions": "pass",
+    "6-missing-8-states": "pending",
+    "7-color-only-state": "pending",
+    "8-fake-chrome": "pending",
+    "9-narrow-viewport-clipping": "pending",
+    "10-infinite-animation": "pass",
+    "11-celebratory-toast": "pending",
+    "12-ellipsis-on-utility-text": "pass",
+    "13-map-photo-gradient": "pending",
+    "14-ai-draft-as-confirmed": "pending",
+    "15-content-system-registration": "pass"
   },
   "issues": {
     "P1": [],

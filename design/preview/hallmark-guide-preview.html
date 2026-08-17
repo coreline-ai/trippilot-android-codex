@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>TripPilot · Hallmark 가이드 프리뷰</title>
+<style>
+  /* Hallmark · macrostructure: preview-board · theme: TripPilot tokens (locked) */
+  :root{
+    --primary:#10243F; --on-primary:#FFFFFF;
+    --wayfinding:#16A8B8; --boarding:#F26A3D; --on-boarding:#FFFFFF;
+    --ai:#6C63D9; --success:#25785C; --error:#B3261E;
+    --surface:#F5F8FA; --surface-variant:#E0E7ED;
+    --on-surface:#10243F; --on-surface-var:#43536A; --outline:#8A99AB;
+    --r-surface:20px; --r-action:14px; --r-cover:28px; --r-chip:999px;
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:40px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#DDE4EB;font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+       color:var(--on-surface);padding:32px;display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+  .col{display:flex;flex-direction:column;gap:8px}
+  .caption{font-size:13px;font-weight:600;color:var(--on-surface-var)}
+  .caption b{color:var(--primary)}
+  .phone{width:360px;background:var(--surface);border-radius:36px;padding:16px;
+         box-shadow:0 12px 32px rgba(16,36,63,.18);min-height:640px;display:flex;flex-direction:column;gap:16px}
+  .status{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--on-surface-var);padding:4px 8px}
+  .appbar{display:flex;justify-content:space-between;align-items:center}
+  .appbar h1{font-size:22px;font-weight:700}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:600;
+        padding:4px 12px;border-radius:var(--r-chip)}
+  .chip.ai{background:#E6E3F8;color:var(--ai)}
+  .chip.ok{background:#DDEEE6;color:var(--success)}
+  .chip.now{background:#DDF1F3;color:#0E7A86}
+  .chip.warn{background:#FCE5DA;color:#C24B20}
+  .cover{background:linear-gradient(0deg,rgba(16,36,63,.92),rgba(16,36,63,.92));
+         border-radius:var(--r-cover);padding:var(--s5);color:#fff;display:flex;flex-direction:column;gap:var(--s2)}
+  .cover .eyebrow{font-size:13px;font-weight:500;color:#9FB4CE;letter-spacing:.4px}
+  .cover h2{font-size:28px;font-weight:700;line-height:36px}
+  .cover .dates{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#C7D6E8}
+  .cover .rail{display:flex;gap:6px;align-items:center;margin-top:8px}
+  .cover .rail .seg{height:6px;border-radius:3px;background:rgba(255,255,255,.22);flex:1}
+  .cover .rail .seg.active{background:var(--wayfinding)}
+  .cover .rail .seg.done{background:var(--success)}
+  .cover .rail .dot{font-size:12px;color:#9FB4CE;font-family:ui-monospace,monospace}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;
+       border-radius:var(--r-action);font-size:16px;font-weight:700}
+  .btn.primary{background:var(--boarding);color:var(--on-boarding)}
+  .btn.ghost{background:transparent;color:var(--primary);border:1.5px solid var(--outline)}
+  .btn.dis{background:var(--surface-variant);color:var(--outline)}
+  .panel{background:#fff;border-radius:var(--r-surface);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3)}
+  .panel h3{font-size:17px;font-weight:700}
+  .row{display:flex;align-items:center;gap:var(--s3);min-height:52px}
+  .row .ic{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .row .t{flex:1;min-width:0}
+  .row .t b{display:block;font-size:16px;font-weight:600}
+  .row .t span{font-size:14px;color:var(--on-surface-var)}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--on-surface-var)}
+  .timeline{display:flex;gap:var(--s3)}
+  .time-rail{display:flex;flex-direction:column;align-items:center;width:56px;flex:none}
+  .time-rail .t{font-family:ui-monospace,monospace;font-size:13px;font-weight:500;color:var(--on-surface-var)}
+  .time-rail .line{flex:1;width:2px;background:var(--surface-variant);margin-top:6px}
+  .time-rail.now .t{color:#0E7A86;font-weight:700}
+  .time-rail.now .line{background:var(--wayfinding)}
+  .card{background:#fff;border-radius:var(--r-action);padding:var(--s3);flex:1}
+  .card b{font-size:16px}
+  .card .meta{font-size:14px;color:var(--on-surface-var);margin-top:4px}
+  .group{background:#fff;border-radius:var(--r-surface);padding:var(--s3) var(--s4)}
+  .group .gh{display:flex;justify-content:space-between;align-items:center;min-height:44px}
+  .group .gh b{font-size:16px}
+  .check{display:flex;align-items:center;gap:var(--s2);min-height:48px;font-size:16px}
+  .check .box{width:22px;height:22px;border-radius:6px;border:2px solid var(--outline);flex:none}
+  .check.done .box{background:var(--success);border-color:var(--success);position:relative}
+  .check.done .box::after{content:"✓";color:#fff;font-size:14px;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .check.done span{color:var(--outline);text-decoration:line-through}
+  .progress-note{font-size:14px;color:var(--on-surface-var)}
+  .progress-note b{color:var(--on-surface)}
+  .states{background:#fff;border-radius:var(--r-surface);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s2)}
+  .states h3{font-size:15px;font-weight:700;color:var(--on-surface-var)}
+  .state-row{display:grid;grid-template-columns:96px 1fr;gap:var(--s2);align-items:center}
+  .state-row .lb{font-size:12px;font-weight:600;color:var(--outline);font-family:ui-monospace,monospace}
+  .pill{height:44px;border-radius:var(--r-action);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+  .pill.def{background:var(--boarding);color:#fff}
+  .pill.pre{background:#DD9273;color:#fff}
+  .pill.foc{background:#fff;outline:3px solid var(--wayfinding);outline-offset:1px;color:var(--primary)}
+  .pill.dis{background:var(--surface-variant);color:var(--outline)}
+  .pill.load{background:#F8D9C9;color:#C24B20}
+  .pill.err{background:#F6D3CF;color:var(--error)}
+  .pill.ok2{background:#DDEEE6;color:var(--success)}
+  .pill.sel{background:#DDF1F3;color:#0E7A86;outline:2px solid var(--wayfinding)}
+  .bottom{margin-top:auto;display:flex;gap:var(--s2)}
+  .bottom .btn{flex:1;min-height:56px}
+</style>
+</head>
+<body>
+
+<!-- 1. 여행 목록 -->
+<div class="col">
+  <div class="caption"><b>① 여행 목록</b> · featured cover + 단일 CTA</div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>●●●</span></div>
+    <div class="appbar"><h1>여행</h1><span style="font-size:24px">＋</span></div>
+    <div class="cover">
+      <span class="eyebrow">다음 여행 · 출발까지 12일</span>
+      <h2>부산 위크엔드</h2>
+      <span class="dates">2026-11-01 → 2026-11-03</span>
+      <div class="rail"><span class="dot">출발 전</span><span class="seg done"></span><span class="seg"></span><span class="dot">DAY 1–3</span><span class="seg"></span><span class="dot">귀국 후</span></div>
+    </div>
+    <div class="panel">
+      <h3>다음 행동</h3>
+      <div class="progress-note"><b>준비 3개 그룹 중 1개 완료</b> · 다음: 숙소 예약 확인</div>
+    </div>
+    <button class="btn primary">준비 이어서 확인</button>
+    <div class="panel" style="background:var(--surface-variant)">
+      <div class="row"><span class="chip ok">완료</span><div class="t"><b>제주 힐링 4박 5일</b><span>2026-09-12 → 09-16 · 정리 항목 2개</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. 브리핑 -->
+<div class="col">
+  <div class="caption"><b>② 브리핑</b> · 큰 표지 + JourneyStageStrip</div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>●●●</span></div>
+    <div class="appbar"><h1 style="font-size:17px;font-weight:700">여정 · 브리핑</h1><span style="font-size:13px;color:var(--outline)">여정 준비 보관함</span></div>
+    <div class="cover">
+      <span class="eyebrow">DAY 1 · 오늘의 브리핑</span>
+      <h2>부산 위크엔드</h2>
+      <span class="dates">2026-11-01 → 2026-11-03 · 국내 · 2박 3일</span>
+      <div class="rail"><span class="dot">전</span><span class="seg"></span><span class="seg active"></span><span class="seg"></span><span class="dot">후</span></div>
+    </div>
+    <div class="panel">
+      <div class="row"><span class="chip now">선택됨</span><div class="t"><b>DAY 1 · 11월 1일 (일)</b><span>일정 3개 · 확인 2개</span></div></div>
+      <div class="row"><span class="chip ai">AI 초안 1건 검토 대기</span><div class="t"><b>식당 예약 초안</b><span>항목별 검토 후 선택 반영</span></div></div>
+    </div>
+    <div class="panel">
+      <h3>다음 예약</h3>
+      <div class="row"><span class="mono">KTX 471</span><div class="t"><b>서울 → 부산</b><span class="mono">11-01 06:25 · 9호차 12A</span></div></div>
+    </div>
+    <div class="bottom">
+      <button class="btn ghost">일정 보기</button>
+      <button class="btn primary">AI 초안 검토</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. 일정 (time rail 문서) -->
+<div class="col">
+  <div class="caption"><b>③ 일정</b> · time rail 문서 구조</div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>●●●</span></div>
+    <div class="appbar"><h1 style="font-size:17px">일정 · DAY 1</h1><span class="mono" style="font-size:13px">11-01 (일)</span></div>
+    <div class="timeline">
+      <div class="time-rail now"><span class="t">06:25</span><span class="line"></span></div>
+      <div class="card"><b>KTX 471 출발</b><div class="meta">서울역 → 부산역</div><div class="mono" style="margin-top:6px">예약 #8412 · 보관함</div></div>
+    </div>
+    <div class="timeline">
+      <div class="time-rail now"><span class="t">09:40</span><span class="line"></span></div>
+      <div class="card"><b>부산역 도착 · 짐 보관</b><div class="meta">역 내 락커 · 확인 완료</div></div>
+    </div>
+    <div class="timeline">
+      <div class="time-rail"><span class="t">11:30</span><span class="line"></span></div>
+      <div class="card" style="outline:1.5px dashed var(--ai)"><b style="color:var(--ai)">점심 식당 (초안)</b><div class="meta">AI 제안 · 검토 전</div></div>
+    </div>
+    <div class="timeline">
+      <div class="time-rail"><span class="t">15:00</span><span class="line"></span></div>
+      <div class="card"><b>해운대 해수욕장</b><div class="meta">메모: 우산 챙기기</div></div>
+    </div>
+    <button class="btn ghost" style="margin-top:auto">일정 추가</button>
+  </div>
+</div>
+
+<!-- 4. 준비 + 8-state -->
+<div class="col">
+  <div class="caption"><b>④ 준비</b> · 그룹 체크리스트 + <b>8-state 규율</b></div>
+  <div class="phone" style="min-height:0">
+    <div class="status"><span>9:41</span><span>●●●</span></div>
+    <div class="appbar"><h1 style="font-size:17px">준비</h1><span class="progress-note"><b>1/3 그룹 완료</b></span></div>
+    <div class="group">
+      <div class="gh"><b>서류·입국</b><span class="chip ok">완료</span></div>
+      <div class="check done"><span class="box"></span><span>신분증 유효기간 확인</span></div>
+      <div class="check done"><span class="box"></span><span>티켓 QR 스크린샷</span></div>
+    </div>
+    <div class="group">
+      <div class="gh"><b>결제·현금</b><span class="chip warn">2개 남음</span></div>
+      <div class="check"><span class="box"></span><span>체크카드 해외결제 확인</span></div>
+      <div class="check"><span class="box"></span><span>현금 10만원 인출</span></div>
+    </div>
+    <div class="states">
+      <h3>Boarding Button — 8 states</h3>
+      <div class="state-row"><span class="lb">default</span><div class="pill def">준비 항목 추가</div></div>
+      <div class="state-row"><span class="lb">pressed</span><div class="pill pre">준비 항목 추가</div></div>
+      <div class="state-row"><span class="lb">focused</span><div class="pill foc">준비 항목 추가</div></div>
+      <div class="state-row"><span class="lb">selected</span><div class="pill sel">선택된 팩</div></div>
+      <div class="state-row"><span class="lb">disabled</span><div class="pill dis">준비 항목 추가</div></div>
+      <div class="state-row"><span class="lb">loading</span><div class="pill load">초안 생성 중…</div></div>
+      <div class="state-row"><span class="lb">error</span><div class="pill err">다시 시도</div></div>
+      <div class="state-row"><span class="lb">success</span><div class="pill ok2">✓ 반영됨</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
