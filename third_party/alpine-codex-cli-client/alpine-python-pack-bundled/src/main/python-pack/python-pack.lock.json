@@ -1,0 +1,161 @@
+{
+  "alpine_version": "3.21.3",
+  "architecture": "aarch64",
+  "pack_id": "alpine-3.21.3-python3-3.12.14-r0",
+  "packages": [
+    {
+      "file": "packages/gdbm-1.24-r0.apk",
+      "name": "gdbm",
+      "sha256": "51da8e712c448965e5f2f652e9889dc0928ced665d4a4d11207e16adef680f9b",
+      "size": 32989,
+      "version": "1.24-r0"
+    },
+    {
+      "file": "packages/libbz2-1.0.8-r6.apk",
+      "name": "libbz2",
+      "sha256": "49945b5c46f2be9201c900df45ca173e1065adb45366c6ad51709381123daa5f",
+      "size": 35333,
+      "version": "1.0.8-r6"
+    },
+    {
+      "file": "packages/libcrypto3-3.3.7-r0.apk",
+      "name": "libcrypto3",
+      "sha256": "8bbd804ffb897d88abb6b10d7d5fd479aadd6f85f2735242fdbb45a687587ca2",
+      "size": 2149313,
+      "version": "3.3.7-r0"
+    },
+    {
+      "file": "packages/libexpat-2.8.2-r0.apk",
+      "name": "libexpat",
+      "sha256": "e21971061695684dd6e6bc359f4425bb2d3800fb4a2026b3600d3c761a183777",
+      "size": 60418,
+      "version": "2.8.2-r0"
+    },
+    {
+      "file": "packages/libffi-3.4.7-r0.apk",
+      "name": "libffi",
+      "sha256": "814579137f32e94e54370f2e5d93d992c4148515b426c168e87102d4d6f6ddc6",
+      "size": 17532,
+      "version": "3.4.7-r0"
+    },
+    {
+      "file": "packages/libgcc-14.2.0-r4.apk",
+      "name": "libgcc",
+      "sha256": "7cfdc00f102d3b98fe563b31e7a59a7b7ab61850c1751915f34e419e83ef2653",
+      "size": 66943,
+      "version": "14.2.0-r4"
+    },
+    {
+      "file": "packages/libncursesw-6.5_p20241006-r3.apk",
+      "name": "libncursesw",
+      "sha256": "c1a5a3a552ad4d44c94454555f38de71b151dc2d608ea2246d92b3bd845b7f3a",
+      "size": 160808,
+      "version": "6.5_p20241006-r3"
+    },
+    {
+      "file": "packages/libpanelw-6.5_p20241006-r3.apk",
+      "name": "libpanelw",
+      "sha256": "11e2911f6fa4f3885e2fb7488847d58c4c8e166922b5fe259811a04f21802089",
+      "size": 5913,
+      "version": "6.5_p20241006-r3"
+    },
+    {
+      "file": "packages/libssl3-3.3.7-r0.apk",
+      "name": "libssl3",
+      "sha256": "1c4cc0696d60a7b2bb5f71a296c6ecb3a2927b5057acecdfb2395cca873b5e62",
+      "size": 348887,
+      "version": "3.3.7-r0"
+    },
+    {
+      "file": "packages/libstdc++-14.2.0-r4.apk",
+      "name": "libstdc++",
+      "sha256": "93dded5af4e42ca59a2e981ffc5acc59c5d7110cec4adaeb15b84dc224526b63",
+      "size": 906144,
+      "version": "14.2.0-r4"
+    },
+    {
+      "file": "packages/mpdecimal-4.0.0-r0.apk",
+      "name": "mpdecimal",
+      "sha256": "e14866cce8ab46653d2c2ffd679357abfa100fe5259f520509117be19d56cab9",
+      "size": 77799,
+      "version": "4.0.0-r0"
+    },
+    {
+      "file": "packages/musl-1.2.5-r11.apk",
+      "name": "musl",
+      "sha256": "721010e6bff908878d9c527428598661be59dde0d9f013f8431d01fd4dd16652",
+      "size": 417982,
+      "version": "1.2.5-r11"
+    },
+    {
+      "file": "packages/ncurses-terminfo-base-6.5_p20241006-r3.apk",
+      "name": "ncurses-terminfo-base",
+      "sha256": "a86fb76ba2ac494ed3a550a5c42d032c486d942966bceae38f6ce95eaa384550",
+      "size": 21303,
+      "version": "6.5_p20241006-r3"
+    },
+    {
+      "file": "packages/pyc-3.12.14-r0.apk",
+      "name": "pyc",
+      "sha256": "e01a235b71ea67caff3141707e021697c17445b46f885f0e0ddf81a9c5cf1cc0",
+      "size": 1196,
+      "version": "3.12.14-r0"
+    },
+    {
+      "file": "packages/python3-3.12.14-r0.apk",
+      "name": "python3",
+      "sha256": "c0ac987f056f17a3b28c33d319eb9ded7f183b5896c83c37ffb3ce86dc3e75d6",
+      "size": 8081978,
+      "version": "3.12.14-r0"
+    },
+    {
+      "file": "packages/python3-pyc-3.12.14-r0.apk",
+      "name": "python3-pyc",
+      "sha256": "0e503bcd0c71f6f69d1f71fcb65b5e902741eebda2cccaf0399b575abbd058d4",
+      "size": 1245,
+      "version": "3.12.14-r0"
+    },
+    {
+      "file": "packages/python3-pycache-pyc0-3.12.14-r0.apk",
+      "name": "python3-pycache-pyc0",
+      "sha256": "c400f68774e5ee5d36b0afa0e7dc3de83be4de574b3a7a08ea5a83efc866afe6",
+      "size": 4171056,
+      "version": "3.12.14-r0"
+    },
+    {
+      "file": "packages/readline-8.2.13-r0.apk",
+      "name": "readline",
+      "sha256": "7dad49f83ecbcfa00c5c7df044a5566b928ac1995651cfff219e1df1c2b93871",
+      "size": 123505,
+      "version": "8.2.13-r0"
+    },
+    {
+      "file": "packages/sqlite-libs-3.48.0-r4.apk",
+      "name": "sqlite-libs",
+      "sha256": "0e4e80c156f65307d0b35c4caf5771fae2a8c3d7f5ffb642a72d13e9c6d3cd14",
+      "size": 823857,
+      "version": "3.48.0-r4"
+    },
+    {
+      "file": "packages/xz-libs-5.8.3-r0.apk",
+      "name": "xz-libs",
+      "sha256": "992ee804cb54b0f7067f50ccfab641b253cab8659792be24ca6dd31795d87466",
+      "size": 116789,
+      "version": "5.8.3-r0"
+    },
+    {
+      "file": "packages/zlib-1.3.2-r0.apk",
+      "name": "zlib",
+      "sha256": "89c230ee1c74c389c1607413c223ed7d27ce1b2e964038facbfc54245157101c",
+      "size": 54378,
+      "version": "1.3.2-r0"
+    }
+  ],
+  "production": true,
+  "sbom": {
+    "file": "sbom.spdx.json",
+    "sha256": "f4f7cc90a785191e15b55a1558554d1cc26425b8276856fbeaba1bf508c52ac0",
+    "size": 22619
+  },
+  "schema": 1
+}

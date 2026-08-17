@@ -1,4 +1,4 @@
-# TripPilot 디자인 토큰
+# TripPilot Trip Briefing 디자인 토큰
 
 이 문서는 [`tokens.json`](tokens.json)의 사람이 읽는 설명이다. 구현 시 화면별 hex·spacing·radius·animation duration 하드코딩을 금지하고, Compose theme와 component token으로만 참조한다.
 
@@ -52,13 +52,14 @@ font scale 1.0x, 1.3x, 2.0x에서 text는 줄바꿈될 수 있어야 하며, 날
 |---|---:|---|
 | surface | 20dp | summary, section container |
 | action/input | 14dp | button, input, selectable row |
+| travel cover | 28dp | 브리핑 첫 화면과 목록의 featured journey container |
 | status chip | 999dp | 상태 전달만 수행 |
 | raised | 1dp | 선택된 summary만; card stack 금지 |
 | modal | 6dp | confirm sheet만 |
-| route transition | 180ms | 날짜/완료 상태 보간 |
+| stage transition | 180ms | 실제 여행 단계·선택 일자 상태 보간 |
 | content transition | 120ms | section 전환 |
 
-system animator scale이 0이거나 접근성 reduce-motion 상태에서는 모든 transition을 생략한다. 리본, icon, button을 반복·무한 애니메이션하지 않는다.
+system animator scale이 0이거나 접근성 reduce-motion 상태에서는 모든 transition을 생략한다. JourneyStageStrip, icon, button을 반복·무한 애니메이션하지 않는다.
 
 ## Material Symbols 고정 목록
 

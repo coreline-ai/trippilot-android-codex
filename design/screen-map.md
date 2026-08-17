@@ -1,4 +1,4 @@
-# TripPilot 화면 맵 및 컴포넌트 계약
+# TripPilot 화면 맵 및 컴포넌트 계약 — Trip Briefing
 
 ## Navigation 구조
 
@@ -6,28 +6,33 @@
 Onboarding
  └─ Trips
      ├─ Create / Edit Trip
-     └─ Trip Detail
-         ├─ Overview
-         ├─ Itinerary
-         ├─ Readiness (Preparation / Packing)
-         ├─ Reservations
-         ├─ Sources
-         └─ AI Draft
-             ├─ Planning request
-             ├─ Draft review
-             └─ Apply result
+     └─ Trip Brief
+         ├─ 여정
+         │   ├─ 브리핑
+         │   └─ 일정
+         ├─ 준비
+         ├─ 보관함
+         │   ├─ 예약 / 공유 예약 텍스트
+         │   └─ 출처
+         └─ 도움
+             ├─ AI 초안 (요청 · 검토 · 선택 반영)
+             └─ 외부 실행 (승인 전 미리보기)
 Settings
  ├─ Codex connection
  ├─ Privacy & external actions
  └─ Backup / reminder preferences
 
 External-confirmation boundaries
- ├─ Calendar selection → ConfirmActionSheet → Calendar Provider
- ├─ Map / source URL selection → ConfirmActionSheet → Intent / Custom Tab
- └─ JSON / ICS selection → ConfirmActionSheet → Storage Access Framework
+ ├─ Calendar selection → ApprovalSheet → Calendar Provider
+ ├─ Map / source URL selection → ApprovalSheet → Intent / Custom Tab
+ └─ JSON / ICS selection → ApprovalSheet → Storage Access Framework
 ```
 
-`Trips`는 phone 기본 시작 화면이다. `TripDetail`의 섹션은 bottom navigation이 아니라 동일 여행 안의 segmented tab/scroll section으로 구현한다. Compact에서는 목록→상세의 순차 back stack을, medium/expanded에서는 선택적으로 list-detail을 사용한다.
+`Trips`는 phone 기본 시작 화면이다. Compact에서는 목록→상세 back stack을 사용하고, 600dp 이상에서는 선택적으로 list-detail pane을 사용한다. 화면의 목적 영역은 네 개로 유지하고 primary navigation에 일자별 tab을 추가하지 않는다.
+
+### Legacy contract migration
+
+이전 `RouteRibbon`은 고정된 진행 값을 그리던 legacy component다. 이번 GUI에서는 실제 데이터와 semantics를 갖는 `JourneyStageStrip`으로 교체한다. 기존 marker는 디자인 검증과 변경 이력을 위해 이 문서에만 유지하며, 새 UI는 `route_ribbon` testTag나 장식성 완료 상태에 의존하지 않는다.
 
 ## Compact wireframes (360–599dp)
 
@@ -35,140 +40,172 @@ External-confirmation boundaries
 
 ```text
 ┌────────────────────────────────────┐
-│ TripPilot                    [설정] │
+│ TripPilot                            │
 │ 나의 여행                            │
-│ ━━●━━━━○━━━━○  다음 출발까지 12일     │
+│ 다음 여행의 준비와 예약을 먼저 봅니다 │
 │                                    │
-│ [서울 · 8/18–8/21]                 │
-│  준비 6/10 · 다음: 호텔 확인          │
+│ ┌ 다음 여정 ──────────────────────┐ │
+│ │ 서울 주말 여행                   │ │
+│ │ 8/18–8/21 · 준비 6/10           │ │
+│ │ 다음: 숙소 확인                  │ │
+│ └─────────────────────────────────┘ │
 │                                    │
-│ [새 여행 만들기]                     │
+│ [새 여행 만들기]                    │
 └────────────────────────────────────┘
 ```
 
-### 여행 상세 개요
+### 여정 / 브리핑
 
 ```text
 ┌────────────────────────────────────┐
-│ [뒤로] 서울 여름 여행         [더보기]│
-│ 8월 18일 월 — 8월 21일 목 · KST      │
-│ ━●━━━━●━━━━●━━━━○                    │
-│ 오늘: 성수동 카페 10:00               │
-│ [일정] [준비] [예약] [출처] [AI 초안]  │
+│ [목록] 서울 주말 여행          [수정]│
+│ 8/18 월 — 8/21 목 · 국내             │
 │                                    │
-│ 다음 행동                            │
-│ 공항 이동 시간을 확인하세요           │
-│ [일정 보기]                          │
+│ 출발 전 ── DAY 1 ── DAY 2 ── 귀국 후 │
+│ 오늘 확인: 숙소 예약 번호             │
+│                                    │
+│ [여정] [준비] [보관함] [도움]          │
+│ [브리핑] [일정]                       │
+│                                    │
+│ 다음 행동                             │
+│ 숙소 예약을 확인하세요                │
+│                                    │
+│ 준비 6/10 · 예약 1 · 출처 재확인 1    │
 └────────────────────────────────────┘
 ```
 
-### 일정 / 준비
+### 여정 / 일정
 
 ```text
 ┌────────────────────────────────────┐
-│ 8월 18일 월  [<] [>]                │
-│ ━●━━━━○━━━━○  1일째                  │
-│ 09:00  호텔 체크인                    │
-│ 11:00  성수동 카페                    │
-│                 [+ 일정 추가]        │
-├────────────────────────────────────┤
-│ 준비 6 / 10                          │
-│ [✓] 여권 확인                        │
-│ [ ] 여행자 보험 확인                  │
-│ 짐 2 / 5                             │
-│ [ ] 충전기 × 1                       │
+│ 서울 주말 여행 · 일정                 │
+│ DAY 1 · 8월 18일 월                  │
+│ [DAY 1] [DAY 2] [DAY 3]              │
+│                                    │
+│ 09:00 ── 호텔 체크인                  │
+│          서울역 · 숙소                │
+│          [출처 1]                    │
+│ 11:00 ── 성수동 카페                  │
+│          개인 메모                    │
+│                                    │
+│ [+ 일정 추가]                         │
 └────────────────────────────────────┘
 ```
 
-### AI 초안 검토
+### 준비
 
 ```text
 ┌────────────────────────────────────┐
-│ AI 초안 검토                         │
-│ 입력: 3박 4일 · 카페와 미술관          │
-│ [보라색: 초안은 아직 저장되지 않음]    │
+│ 서울 주말 여행 · 준비                 │
+│ 준비 6개 중 3개 완료                  │
 │                                    │
-│ [✓] 8/18 11:00 성수동 카페 [수정]     │
-│ [ ] 준비: 우산                       │
-│ [✓] 출처 후보 2개                    │
-│ 가정: 비 예보는 확인이 필요합니다      │
+│ 서류 · 입국                    1/3    │
+│ [✓] 여권 상태                         │
+│     유효기간과 입국 조건을 직접 확인  │
+│ [ ] 숙소 확인서                       │
+│                                    │
+│ 통신 · 전자기기                2/4    │
+│ [ ] eSIM 또는 로밍                    │
+│ [✓] 보조배터리                         │
+│                                    │
+│ [준비 항목 추가]                      │
+└────────────────────────────────────┘
+```
+
+### 보관함 / 예약
+
+```text
+┌────────────────────────────────────┐
+│ 서울 주말 여행 · 보관함               │
+│ [예약] [출처]                         │
+│                                    │
+│ 숙소 · 확인됨                         │
+│ Field Hotel Seoul                     │
+│ 확인번호 TP-SEOUL-01                  │
+│ 8/18 15:00 · 서울                     │
+│ 연결 출처 1 · 마지막 확인 없음         │
+│                                    │
+│ [예약 추가]                           │
+└────────────────────────────────────┘
+```
+
+### 도움 / AI 초안·외부 실행
+
+```text
+┌────────────────────────────────────┐
+│ 서울 주말 여행 · 도움                 │
+│ [AI 초안] [외부 실행]                 │
+│                                    │
+│ 초안은 여행 기록이 아닙니다            │
+│ [선택됨] 8/18 11:00 성수동 카페 [수정]│
+│ [제외됨] 준비: 우산                   │
+│                                    │
 │ [선택한 2개 항목 반영]                │
-└────────────────────────────────────┘
-```
-
-### Codex 연결 상태
-
-```text
-┌────────────────────────────────────┐
-│ Codex 연결                           │
-│ [보라색 상태] 연결되지 않음            │
-│ AI는 여행 초안만 제안합니다.            │
-│ 여행 기록과 외부 실행은 직접 승인합니다.│
-│ [Codex에서 로그인 시작]               │
-│ 자세한 정보: 개인정보 및 외부 전송      │
 └────────────────────────────────────┘
 ```
 
 ## Medium/expanded wireframes (600dp 이상)
 
 ```text
-┌───────────────┬─────────────────────────────────────────┐
-│ 나의 여행      │ 서울 여름 여행                            │
-│ ━●━━○━━○      │ 8/18–8/21 · KST                           │
-│ 서울 여름 여행 │ ━●━━━━●━━━━●━━━━○  오늘 2일째             │
-│ 부산 주말 여행 │ [개요] [일정] [준비] [예약] [출처] [AI]    │
-│               │ 다음 행동: 공항 이동 시간을 확인하세요      │
-│ [+ 새 여행]   │ 09:00 호텔 체크인                          │
-│               │ 11:00 성수동 카페                           │
-└───────────────┴─────────────────────────────────────────┘
+┌────────────────────┬────────────────────────────────────┐
+│ 나의 여행           │ 서울 주말 여행                       │
+│                    │ 8/18–8/21 · 국내                    │
+│ 서울 주말 여행      │ 출발 전 ─ DAY 1 ─ DAY 2 ─ 귀국 후   │
+│ 부산 주말 여행      │ 오늘 확인: 숙소 예약 번호            │
+│                    │                                    │
+│ [+ 새 여행]         │ [여정] [준비] [보관함] [도움]         │
+│                    │ [브리핑] [일정]                      │
+│                    │ 준비 6/10 · 예약 1 · 다음 일정 09:00 │
+└────────────────────┴────────────────────────────────────┘
 ```
 
-- 600dp 이상에서 only list-detail shell을 추가해도 route·tab·action label은 phone 화면과 동일하다.
-- 840dp 이상에서 rail을 쓰더라도 primary action을 rail에 중복하지 않는다.
-- 모든 compact screen은 vertical scroll 가능하며, 2.0x font scale에서 action은 마지막 문장 뒤에 자연스럽게 내려간다.
+- 600dp 이상은 list-detail을 추가해도 navigation label·action label·승인 경계가 compact와 같아야 한다.
+- 840dp 이상 rail을 써도 primary action을 rail에 중복하지 않는다.
+- 2.0x font scale에서 stage strip, 날짜 selector, CTA는 세로로 자연스럽게 확장된다.
 
 ## Component contract
 
 | Component | 입력 / 상태 | 의미·접근성 | testTag | 금지 |
 |---|---|---|---|---|
-| `TripPilotTopBar` | title, back, overflow, inset | heading 1, icon마다 contentDescription | `top_bar` | title truncate로 목적지 숨김 |
-| `RouteRibbon` | days, selectedDay, statusNodes, onDaySelect | 요약 `여행 4일 중 2일째`; 노드마다 날짜·상태 label | `route_ribbon`, `route_day_<id>` | Canvas-only 의미 전달 |
-| `StatusChip` | semantic status, label | label을 항상 노출; color는 보조 | `status_<status>` | filter/CTA 겸임 |
-| `PrimaryAction` | label, enabled, loading, onClick | 48dp 이상, loading도 action명 유지 | `primary_action` | 한 screen에 2개 이상 |
-| `EmptyState` | asset, title, body, action | illustration decorative, text가 의미 보유 | `empty_<kind>` | 사진 배경·자동 동작 |
-| `ConfirmActionSheet` | target, consequence, confirm, cancel | 경계 밖 실행 대상·취소 결과를 낭독 | `confirm_<action>` | 로컬 저장에 과도하게 사용 |
+| `TripBriefScaffold` | title, selected area/page, content, primary action | safe inset·sticky title·scroll/action order를 한 곳에서 제공 | `trip_brief_scaffold`, `trip_detail_screen` | 탭마다 큰 독립 app bar |
+| `TripBriefHeader` | trip, back, edit, compact | 브리핑에서 제목·기간·범위를 모두 읽고, 다른 탭에서는 축소 | `trip_brief_header`, `back_to_trips` | 제목/기간을 숨김 |
+| `JourneyStageStrip` | stage list, selected stage, status summary, onStageSelect | 각 stage의 날짜·상태와 전체 요약을 낭독 | `journey_stage_strip`, `journey_stage_<id>` | 데이터 없는 완료 상태, Canvas-only 의미 |
+| `TripAreaNavigation` | selected area, onSelected | 여정/준비/보관함/도움 중 하나를 명확히 낭독 | `trip_area_<area>` | 4개 초과 primary tab |
+| `SubPageNavigation` | 최대 2 entries, selected | 현재 area에 종속된 하위 목적을 낭독 | `trip_subpage_<group>_<page>` | stage strip과 역할 중복 |
+| `BriefingPanel` | kind, title, summary, action | 다음 행동·진행·예약 상태를 읽는 우선순위 panel | `briefing_panel_<kind>` | 동일 card의 반복 stack |
+| `TimelineEntry` | date/time/all-day, type, location, notes, source state | 시간·장소·개인 메모·출처 상태를 순서대로 낭독 | `timeline_entry_<id>` | 항목 표시만으로 link 실행 |
+| `ChecklistGroup` | group, completion, items, optional | 그룹·완료 수·다음 미완료를 함께 낭독 | `checklist_group_<id>` | 이유 없는 단일 checklist 목록 |
+| `DocumentRow` | reservation/source summary, state, actions | 예약처·확인번호·상태·연결 출처를 문서처럼 읽음 | `document_row_<id>` | 카드 안의 중복 action row |
+| `ApprovalSheet` | target, consequence, confirm, cancel | 경계 밖 실행 대상·취소 결과를 낭독 | `approval_sheet`, `confirm_<action>` | 로컬 저장에 과도하게 사용 |
+| `SelectionReviewRow` | selected, summary, edit state | 초안은 요약으로 시작하고 수정 때만 form 확장 | `draft_selection_<id>`, `edit_draft_<id>` | 초안 form을 기본으로 전부 펼침 |
 
 ## 기존 기능 parity → 신규 화면·테스트 추적표
 
-`PAR-*`은 기존 기능 매트릭스의 적용/변형 적용 행에 대한 최소 검증 ID다. Phase 2 이후 `docs/test-matrix.md`에 실제 명령·결과를 누적한다.
-
 | ID | 기존 기능 계약 | 신규 화면 / 책임 모델 | 구현 Phase | 최소 검증 |
-|---|---|---|---:|---|
-| PAR-01 | 시작 안내·로컬 우선 고지 | `OnboardingScreen`, `PrivacyScreen` | 0,2,5 | T-ONBOARD-LOCAL-01 |
-| PAR-02 | 여행 보드 CRUD | `TripsScreen`, `TripEditor`, `Trip` | 2 | T-TRIP-CRUD-01 |
-| PAR-03 | 여행 범위·기본 항목 | `TripScopeSelector`, `TravelScope`, template rule | 2 | T-SCOPE-TEMPLATE-01 |
-| PAR-04 | Preparation/Packing 분리 | `ReadinessScreen`, item models | 2 | T-READINESS-SPLIT-01 |
-| PAR-05 | 준비 완료 알림 | reminder preference/rule/delivery | 2,5 | T-REMINDER-D7-01 |
-| PAR-06 | 일정 CRUD | `ItineraryScreen`, `ItineraryItem` | 2 | T-ITINERARY-BOUNDARY-01 |
-| PAR-07 | 출처·재확인 | `SourcesScreen`, `SourceEvidence`, recheck | 2,5 | T-SOURCE-RECHECK-01 |
-| PAR-08 | 지도·브라우저 열기 | `ConfirmActionSheet`, map/Custom Tab handoff | 5 | T-EXTERNAL-CONFIRM-01 |
-| PAR-09 | 예약 관리 | `ReservationsScreen`, `Reservation` | 2 | T-RESERVATION-UNIQUE-01 |
-| PAR-10 | 공유 예약 입력 | `ShareIntakeScreen`, `PendingReservationShare` | 2,5 | T-SHARE-TEXT-ONLY-01 |
-| PAR-11 | 예약 AI 초안 | `ReservationDraftReview`, `ReservationDraft` | 3,4 | T-DRAFT-RESERVATION-01 |
-| PAR-12 | 여행 AI 계획 | `PlanRequestScreen`, `DraftReviewScreen`, `TripPlanDraft` | 3,4 | T-DRAFT-PARTIAL-APPLY-01 |
-| PAR-13 | 날씨 참고 | `WeatherAdvisoryPanel`, `WeatherAdvisoryDraft` | 4 | T-WEATHER-READONLY-01 |
-| PAR-14 | Calendar 승인 ledger | `CalendarReviewScreen`, `CalendarAction` | 5 | T-CALENDAR-LEDGER-01 |
-| PAR-15 | ICS 내보내기 | `IcsExportSheet`, selected itinerary | 5 | T-ICS-SELECTED-01 |
-| PAR-16 | JSON 백업·복원 | `BackupScreen`, backup contract | 2,5 | T-BACKUP-COPY-01 |
-| PAR-17 | 범용 Agent 바로가기 대체 | `AiDraftEntryScreen`, connection state | 3,4 | T-AI-NO-CHAT-01 |
-
-의도적 미적용 항목(과거 chat 검색, Place table, generic pending action, browser automation)은 이 화면 맵과 테스트 목록에 넣지 않는다.
+|---|---|---:|---:|---|
+| PAR-01 | 시작 안내·로컬 우선 고지 | Trips/Privacy screen | 1,5 | T-ONBOARD-LOCAL-01 |
+| PAR-02 | 여행 보드 CRUD | Trips/Trip editor/Trip brief | 1,4 | T-TRIP-CRUD-01 |
+| PAR-03 | 여행 범위·기본 항목 | ReadinessTemplateCatalog/template migration | 3 | T-SCOPE-TEMPLATE-01 |
+| PAR-04 | Preparation/Packing 분리 | ChecklistGroup/Readiness screen | 3 | T-READINESS-SPLIT-01 |
+| PAR-05 | 준비 완료 알림 | reminder preference/rule/delivery | 5 | T-REMINDER-D7-01 |
+| PAR-06 | 일정 CRUD | date selector/TimelineEntry | 2,4 | T-ITINERARY-BOUNDARY-01 |
+| PAR-07 | 출처·재확인 | DocumentRow/Sources screen | 2 | T-SOURCE-RECHECK-01 |
+| PAR-08 | 지도·브라우저 열기 | ApprovalSheet/Intent handoff | 4,5 | T-EXTERNAL-CONFIRM-01 |
+| PAR-09 | 예약 관리 | Reservation document rows | 2,4 | T-RESERVATION-UNIQUE-01 |
+| PAR-10 | 공유 예약 입력 | Share intake/document state | 2,4 | T-SHARE-TEXT-ONLY-01 |
+| PAR-11 | 예약 AI 초안 | SelectionReviewRow/ReservationDraft | 4 | T-DRAFT-RESERVATION-01 |
+| PAR-12 | 여행 AI 계획 | Draft request/review/partial apply | 4 | T-DRAFT-PARTIAL-APPLY-01 |
+| PAR-13 | 날씨 참고 | WeatherAdvisoryDraft read-only | 4 | T-WEATHER-READONLY-01 |
+| PAR-14 | Calendar approval ledger | ApprovalSheet/CalendarAction | 4,5 | T-CALENDAR-LEDGER-01 |
+| PAR-15 | ICS export | selected itinerary review | 4,5 | T-ICS-SELECTED-01 |
+| PAR-16 | JSON backup·restore | v1/v2 backup contract | 3,5 | T-BACKUP-COPY-01 |
+| PAR-17 | 범용 Agent 대체 | AI draft entry/connection state | 4 | T-AI-NO-CHAT-01 |
 
 ## 접근성 / responsive 검토 checklist
 
-- `A11Y-01`: TalkBack 순서는 top bar → 여행 제목/기간 → RouteRibbon 요약 → 날짜 탭 → 다음 행동 → content → primary action이다.
-- `A11Y-02`: progress는 `준비 6개 중 10개 완료`처럼 수치와 의미를 함께 말한다.
-- `A11Y-03`: 모든 icon-only control은 명확한 content description을 가진다.
-- `LAYOUT-01`: 360dp, 600dp, 840dp의 와이어프레임에서 정보와 action의 역할이 유지된다.
+- `A11Y-01`: TalkBack 순서는 compact header → journey stage summary → 목적 영역 → 하위 페이지 → content → primary action이다.
+- `A11Y-02`: 준비 진행은 `서류·입국 3개 중 1개 완료, 다음 숙소 확인서`처럼 수치·그룹·다음 행동을 함께 말한다.
+- `A11Y-03`: icon-only control은 명확한 content description을 가진다.
+- `LAYOUT-01`: 360dp, 600dp, 840dp에서 같은 정보 우선순위를 유지한다.
 - `TEXT-01`: 1.0x, 1.3x, 2.0x에서 title/date/error/action이 clipping 또는 의미 없는 ellipsis 없이 보인다.
-- `MOTION-01`: animator scale 0은 RouteRibbon과 content transition을 즉시 완료한다.
+- `MOTION-01`: animator scale 0은 JourneyStageStrip과 content transition을 즉시 완료한다.

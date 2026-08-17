@@ -1,22 +1,37 @@
 package io.trippilot.app.core.design
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -24,17 +39,50 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalConfiguration
 import io.trippilot.app.R
+
+enum class TripBriefWindowClass { COMPACT, MEDIUM, EXPANDED }
+
+/**
+ * Shared app frame for the local Trip Briefing experience. It owns the system
+ * inset, snackbar, centered reading pane and window classification so screen
+ * content can stay focused on a single travel action.
+ */
+@Composable
+fun TripBriefScaffold(
+    snackbarHostState: SnackbarHostState,
+    content: @Composable (PaddingValues, TripBriefWindowClass) -> Unit,
+) {
+    Scaffold(
+        modifier = Modifier.testTag("trip_brief_scaffold"),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val windowClass = when {
+                maxWidth >= 840.dp -> TripBriefWindowClass.EXPANDED
+                maxWidth >= 600.dp -> TripBriefWindowClass.MEDIUM
+                else -> TripBriefWindowClass.COMPACT
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 840.dp)
+                    .align(Alignment.TopCenter),
+            ) {
+                content(padding, windowClass)
+            }
+        }
+    }
+}
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,53 +97,170 @@ fun TripPilotTopBar(title: String, modifier: Modifier = Modifier) {
     )
 }
 
+/**
+ * Data-bearing replacement for the decorative RouteRibbon. Each stage keeps a text
+ * label, state, and optional click target so visual color is never the only signal.
+ */
 @Composable
-fun RouteRibbon(
-    completedDays: Int,
-    totalDays: Int,
-    selectedDay: Int,
+fun JourneyStageStrip(
+    stages: List<JourneyStage>,
+    selectedStageId: String,
+    summary: String,
+    onStageSelected: (JourneyStage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val summary = "여행 ${totalDays}일 중 ${selectedDay}일째, 완료 ${completedDays}일"
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val wayfinding = MaterialTheme.colorScheme.secondary
-    val primary = MaterialTheme.colorScheme.primary
-    Canvas(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(58.dp)
-            .testTag("route_ribbon")
+            .testTag("journey_stage_strip")
             .semantics { contentDescription = summary },
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        val centerY = size.height * 0.52f
-        val start = size.width * 0.07f
-        val end = size.width * 0.93f
-        val path = Path().apply {
-            moveTo(start, centerY)
-            cubicTo(
-                size.width * 0.30f,
-                centerY - 24.dp.toPx(),
-                size.width * 0.55f,
-                centerY + 24.dp.toPx(),
-                end,
-                centerY - 6.dp.toPx(),
+        Column(Modifier.padding(vertical = 10.dp)) {
+            Text(
+                text = summary,
+                modifier = Modifier.padding(horizontal = 14.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                stages.forEach { stage ->
+                    val selected = stage.id == selectedStageId
+                    val container = when {
+                        selected -> MaterialTheme.colorScheme.primary
+                        stage.state == JourneyStageState.ACTION_REQUIRED -> MaterialTheme.colorScheme.tertiaryContainer
+                        stage.state == JourneyStageState.COMPLETE -> MaterialTheme.colorScheme.secondaryContainer
+                        else -> MaterialTheme.colorScheme.surface
+                    }
+                    val content = when {
+                        selected -> MaterialTheme.colorScheme.onPrimary
+                        stage.state == JourneyStageState.ACTION_REQUIRED -> MaterialTheme.colorScheme.onTertiaryContainer
+                        stage.state == JourneyStageState.COMPLETE -> MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .testTag("journey_stage_${stage.id}")
+                            .semantics {
+                                contentDescription = "${stage.label}, ${stage.detail}, ${stage.state.label}"
+                                this.selected = selected
+                            },
+                        shape = MaterialTheme.shapes.medium,
+                        color = container,
+                        contentColor = content,
+                        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        onClick = { onStageSelected(stage) },
+                    ) {
+                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Text(stage.label, style = MaterialTheme.typography.labelLarge)
+                            Text(stage.detail, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
         }
-        drawPath(
-            path = path,
-            color = surfaceVariant,
-            style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round),
-        )
-        val progress = if (totalDays <= 1) 1f else (selectedDay - 1f) / (totalDays - 1f)
-        drawPath(
-            path = path,
-            color = wayfinding,
-            style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round),
-        )
-        val nodeX = start + (end - start) * progress.coerceIn(0f, 1f)
-        drawCircle(color = TripPilotMossGreen, radius = 10.dp.toPx(), center = androidx.compose.ui.geometry.Offset(start, centerY))
-        drawCircle(color = primary, radius = 12.dp.toPx(), center = androidx.compose.ui.geometry.Offset(nodeX, centerY))
-        drawCircle(color = TripPilotBoardingOrange, radius = 10.dp.toPx(), center = androidx.compose.ui.geometry.Offset(end, centerY - 6.dp.toPx()))
+    }
+}
+
+@Composable
+fun BriefingPanel(
+    kind: String,
+    eyebrow: String,
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
+) {
+    val container = when (kind) {
+        "next_action" -> MaterialTheme.colorScheme.primaryContainer
+        "draft" -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val content = when (kind) {
+        "next_action" -> MaterialTheme.colorScheme.onPrimaryContainer
+        "draft" -> MaterialTheme.colorScheme.onTertiaryContainer
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    Surface(
+        modifier = modifier.fillMaxWidth().testTag("briefing_panel_$kind"),
+        shape = MaterialTheme.shapes.large,
+        color = container,
+        contentColor = content,
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(eyebrow, style = MaterialTheme.typography.labelLarge)
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(body, style = MaterialTheme.typography.bodyMedium)
+            action?.invoke()
+        }
+    }
+}
+
+/** Keyboard-safe local form container; it does not perform writes by itself. */
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun TripFormSheet(
+    title: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    confirmEnabled: Boolean = true,
+    confirmTag: String? = null,
+    content: @Composable (Modifier) -> Unit,
+) {
+    val maxSheetHeight = (LocalConfiguration.current.screenHeightDp * 0.82f).dp
+    // Forms contain text fields and a required cancel/confirm row. Starting in the
+    // partially-expanded state leaves that action row below the keyboard on tall
+    // Samsung screens, so always open the bounded form in its expanded state.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("trip_form_sheet"),
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxSheetHeight)
+                .imePadding()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            Box(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .fillMaxWidth(),
+            ) {
+                content(
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            ) {
+                TextButton(onClick = onDismiss) { Text("취소") }
+                Button(
+                    onClick = onConfirm,
+                    enabled = confirmEnabled,
+                    modifier = if (confirmTag == null) Modifier else Modifier.testTag(confirmTag),
+                ) { Text(confirmLabel) }
+            }
+        }
     }
 }
 
@@ -125,7 +290,10 @@ fun PrimaryAction(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            // A fixed 52dp height clips the 2.0x accessibility type-scale label.
+            // Keep the standard touch-target minimum, while allowing the action to
+            // grow when the user's font scale needs another line-height.
+            .heightIn(min = 52.dp)
             .testTag("primary_action"),
         enabled = enabled,
         colors = ButtonDefaults.buttonColors(
@@ -133,7 +301,14 @@ fun PrimaryAction(
             contentColor = Color(0xFF381002),
         ),
     ) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
+        // The explicit padding participates in measurement, unlike a clipped
+        // fixed-height container. At a 2.0x font scale this makes the button
+        // taller instead of cutting off the Korean label's descenders.
+        Text(
+            text = label,
+            modifier = Modifier.padding(vertical = 4.dp),
+            style = MaterialTheme.typography.labelLarge,
+        )
     }
 }
 
@@ -152,7 +327,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         androidx.compose.foundation.Image(
-            painter = painterResource(illustration),
+            painter = androidx.compose.ui.res.painterResource(illustration),
             contentDescription = null,
             modifier = Modifier.size(width = 180.dp, height = 120.dp),
         )
@@ -173,7 +348,7 @@ fun ConfirmActionSheet(
     modifier: Modifier = Modifier,
 ) {
     AlertDialog(
-        modifier = modifier.testTag("confirm_action_sheet"),
+        modifier = modifier.testTag("approval_sheet"),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(body) },
@@ -190,11 +365,29 @@ fun ConfirmActionSheet(
 
 @Preview(showBackground = true, widthDp = 360)
 @Composable
+private fun JourneyStageStripPreview() {
+    TripPilotTheme {
+        JourneyStageStrip(
+            stages = listOf(
+                JourneyStage("pre", "출발 전", "준비 2개", JourneyStageState.ACTION_REQUIRED),
+                JourneyStage("2026-08-16", "DAY 1", "일정 2개", JourneyStageState.PLANNED),
+                JourneyStage("post", "귀국 후", "예정", JourneyStageState.UPCOMING),
+            ),
+            selectedStageId = "pre",
+            summary = "출발 전 · 준비 2개 확인 필요",
+            onStageSelected = {},
+            modifier = Modifier.padding(24.dp),
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
 private fun EmptyStatePreview() {
     TripPilotTheme {
         EmptyState(
             title = "아직 여행이 없습니다",
-            body = "새 여행을 만들면 준비할 일을 경로로 정리합니다.",
+            body = "새 여행을 만들면 준비할 일을 여행 브리프로 정리합니다.",
             illustration = R.drawable.trippilot_empty_trips,
             modifier = Modifier.padding(24.dp),
         )

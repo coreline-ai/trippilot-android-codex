@@ -7,6 +7,11 @@ local.properties
 .idea/
 captures/
 externalNativeBuild/
+.cxx/
+**/.cxx/
+__pycache__/
+**/__pycache__/
+*.pyc
 *.keystore
 *.jks
 *.apk

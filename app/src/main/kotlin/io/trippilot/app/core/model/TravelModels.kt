@@ -68,6 +68,7 @@ object TravelValidators {
 }
 
 data class DefaultChecklistItem(
+    val templateId: ChecklistTemplateId,
     val title: String,
     val type: ChecklistType,
 )
@@ -75,24 +76,9 @@ data class DefaultChecklistItem(
 enum class ChecklistType { PREPARATION, PACKING }
 
 object TravelScopeTemplates {
-    fun items(scope: TravelScope): List<DefaultChecklistItem> = when (scope) {
-        TravelScope.AUTO -> commonItems()
-        TravelScope.DOMESTIC -> commonItems() + listOf(
-            DefaultChecklistItem("교통·숙소 예약 확인", ChecklistType.PREPARATION),
-            DefaultChecklistItem("신분증", ChecklistType.PREPARATION),
-        )
-        TravelScope.INTERNATIONAL -> commonItems() + listOf(
-            DefaultChecklistItem("여권 유효기간 확인", ChecklistType.PREPARATION),
-            DefaultChecklistItem("입국 서류·비자 확인", ChecklistType.PREPARATION),
-            DefaultChecklistItem("여행자 보험 확인", ChecklistType.PREPARATION),
-            DefaultChecklistItem("어댑터", ChecklistType.PACKING),
-        )
-    }
-
-    private fun commonItems() = listOf(
-        DefaultChecklistItem("일정과 예약 확인", ChecklistType.PREPARATION),
-        DefaultChecklistItem("결제 수단 확인", ChecklistType.PREPARATION),
-        DefaultChecklistItem("충전기", ChecklistType.PACKING),
-        DefaultChecklistItem("개인 의약품", ChecklistType.PACKING),
-    )
+    /** Compatibility view for callers that only need the required local templates. */
+    fun items(scope: TravelScope): List<DefaultChecklistItem> =
+        ReadinessTemplateCatalog.requiredItems(scope).map { template ->
+            DefaultChecklistItem(template.id, template.title, template.type)
+        }
 }

@@ -1,5 +1,8 @@
 package io.trippilot.app.core.codex
 
+import io.trippilot.app.integration.codex.contract.BudgetRange
+import io.trippilot.app.integration.codex.contract.TravelCompanion
+import io.trippilot.app.integration.codex.contract.TripPlanningRequest
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -7,54 +10,65 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FakeCodexRuntimeTest {
+    private val request = TripPlanningRequest(
+        destination = "도쿄", startDate = "2026-10-01", endDate = "2026-10-03",
+        companion = TravelCompanion.SOLO, budget = BudgetRange.FLEXIBLE,
+        interests = listOf("음식"), purpose = "검토용 여행 초안",
+    )
+
     @Test
-    fun `login state transitions never expose credentials`() = runBlocking {
+    fun `fake runtime is credential-free and exposes only a fixture model`() = runBlocking {
         val runtime = FakeCodexRuntime()
 
         assertEquals(RuntimeStatus.READY, runtime.runtimeStatus.value)
-        assertEquals(AuthStatus.LOGIN_REQUIRED, runtime.authStatus.value)
-
+        assertEquals(AuthStatus.NOT_REQUIRED, runtime.authStatus.value)
         runtime.beginLogin()
-        assertEquals(AuthStatus.LOGIN_IN_PROGRESS, runtime.authStatus.value)
-
-        runtime.completeLoginForTestOrPreview()
-        assertEquals(AuthStatus.CONNECTED, runtime.authStatus.value)
+        runtime.cancelLogin()
+        runtime.refreshAfterBrowserReturn()
+        assertEquals(AuthStatus.NOT_REQUIRED, runtime.authStatus.value)
+        assertEquals(null, runtime.loginChallenge.value)
         assertEquals("fake-trip-planner", runtime.availableModels().single().id)
-
-        runtime.logout()
-        assertEquals(AuthStatus.LOGIN_REQUIRED, runtime.authStatus.value)
-        assertTrue(runtime.availableModels().isEmpty())
     }
 
     @Test
-    fun `draft stream is rejected until a connection exists`() = runBlocking {
+    fun `stream emits parsed draft without raw response content`() = runBlocking {
+        val events = FakeCodexRuntime().createPlanStream(request).toList()
+
+        assertTrue(events.first() is DraftStreamEvent.Started)
+        assertTrue(events.any { it is DraftStreamEvent.Progress })
+        assertTrue(events.any { it is DraftStreamEvent.TripPlanReady })
+        assertEquals(DraftStreamEvent.Completed, events.last())
+    }
+
+    @Test
+    fun `empty contract failure stop and late completion fixtures are explicit`() = runBlocking {
         val runtime = FakeCodexRuntime()
-        val request = PlanRequest(tripId = "trip-1")
+        runtime.setScenarioForTest(FakeCodexScenario.EMPTY)
+        assertTrue(runtime.createPlanStream(request).toList().contains(DraftStreamEvent.Empty))
 
+        runtime.setScenarioForTest(FakeCodexScenario.CONTRACT_VIOLATION)
         assertEquals(
-            listOf(PlanStreamEvent.Failed(PlanStreamFailure.AUTH_REQUIRED)),
-            runtime.createPlanStream(request).toList(),
+            DraftStreamEvent.Failed(PlanStreamFailure.CONTRACT_REJECTED),
+            runtime.createPlanStream(request).toList().last(),
         )
 
-        runtime.beginLogin()
-        runtime.completeLoginForTestOrPreview()
+        runtime.setScenarioForTest(FakeCodexScenario.STOPPED)
+        assertTrue(runtime.createPlanStream(request).toList().contains(DraftStreamEvent.Stopped))
 
-        assertEquals(
-            listOf(PlanStreamEvent.Started, PlanStreamEvent.Completed),
-            runtime.createPlanStream(request).toList(),
-        )
+        runtime.setScenarioForTest(FakeCodexScenario.LATE_COMPLETION)
+        val lateEvents = runtime.createPlanStream(request).toList()
+        val stoppedIndex = lateEvents.indexOf(DraftStreamEvent.Stopped)
+        assertTrue(stoppedIndex >= 0 && lateEvents.drop(stoppedIndex + 1).any { it is DraftStreamEvent.TripPlanReady })
     }
 
     @Test
-    fun `runtime failure blocks streaming and changes only runtime state`() = runBlocking {
+    fun `runtime error never becomes a draft`() = runBlocking {
         val runtime = FakeCodexRuntime()
         runtime.failRuntimeForTestOrPreview()
 
-        assertEquals(RuntimeStatus.ERROR, runtime.runtimeStatus.value)
-        assertEquals(AuthStatus.ERROR, runtime.authStatus.value)
         assertEquals(
-            listOf(PlanStreamEvent.Failed(PlanStreamFailure.RUNTIME_UNAVAILABLE)),
-            runtime.createPlanStream(PlanRequest("trip-1")).toList(),
+            listOf(DraftStreamEvent.Failed(PlanStreamFailure.RUNTIME_UNAVAILABLE)),
+            runtime.createPlanStream(request).toList(),
         )
     }
 }

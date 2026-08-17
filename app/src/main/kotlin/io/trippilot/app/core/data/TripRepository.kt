@@ -2,25 +2,32 @@ package io.trippilot.app.core.data
 
 import androidx.room.withTransaction
 import io.trippilot.app.core.data.db.ItineraryItemEntity
+import io.trippilot.app.core.data.db.CalendarActionEntity
 import io.trippilot.app.core.data.db.PackingItemEntity
 import io.trippilot.app.core.data.db.PendingReservationShareEntity
 import io.trippilot.app.core.data.db.PreparationItemEntity
 import io.trippilot.app.core.data.db.ReservationEntity
+import io.trippilot.app.core.data.db.ReadinessReminderEntity
 import io.trippilot.app.core.data.db.SourceEvidenceEntity
 import io.trippilot.app.core.data.db.TripDao
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.data.db.TripPilotDatabase
 import io.trippilot.app.core.model.ChecklistType
+import io.trippilot.app.core.model.ChecklistGroup
 import io.trippilot.app.core.model.ItemOrigin
 import io.trippilot.app.core.model.PreparationStatus
 import io.trippilot.app.core.model.ReservationStatus
 import io.trippilot.app.core.model.RecheckResult
 import io.trippilot.app.core.model.SourceOwnerType
-import io.trippilot.app.core.model.TravelScopeTemplates
+import io.trippilot.app.core.model.ReadinessTemplate
+import io.trippilot.app.core.model.ReadinessTemplateCatalog
 import io.trippilot.app.core.model.TravelValidators
 import io.trippilot.app.core.model.TripInput
 import io.trippilot.app.core.model.TripStatus
 import io.trippilot.app.core.model.ValidationResult
+import io.trippilot.app.integration.codex.contract.ApprovedDraftSelection
+import io.trippilot.app.integration.codex.contract.ContractResult
+import io.trippilot.app.integration.codex.contract.TripDraftParser
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,6 +46,8 @@ class TripRepository @Inject constructor(
     fun observePacking(tripId: String): Flow<List<PackingItemEntity>> = dao.observePacking(tripId)
     fun observeReservations(tripId: String): Flow<List<ReservationEntity>> = dao.observeReservations(tripId)
     fun observeSources(tripId: String): Flow<List<SourceEvidenceEntity>> = dao.observeSources(tripId)
+    fun observeCalendarActions(tripId: String): Flow<List<CalendarActionEntity>> = dao.observeCalendarActions(tripId)
+    fun observeReadinessReminder(tripId: String): Flow<ReadinessReminderEntity?> = dao.observeReadinessReminder(tripId)
     fun observeRechecks(evidenceId: String) = dao.observeRechecks(evidenceId)
     fun observeActiveShares(tripId: String) = dao.observeActiveShares(tripId, System.currentTimeMillis())
 
@@ -209,22 +218,44 @@ class TripRepository @Inject constructor(
         database.withTransaction { addMissingTemplateItems(tripId, scope, System.currentTimeMillis()) }
     }
 
-    private suspend fun addMissingTemplateItems(tripId: String, scope: io.trippilot.app.core.model.TravelScope, now: Long) {
-        // The default template never removes existing manual, completed, or AI items.
-        val existingPreparation = dao.preparationTitles(tripId).map(String::trim).toSet()
-        val existingPacking = dao.packingTitles(tripId).map(String::trim).toSet()
-        TravelScopeTemplates.items(scope).forEach { item ->
+    suspend fun applyOptionalReadinessPack(
+        tripId: String,
+        scope: io.trippilot.app.core.model.TravelScope,
+        group: ChecklistGroup,
+    ) {
+        database.withTransaction {
+            addMissingTemplateItems(
+                tripId = tripId,
+                scope = scope,
+                now = System.currentTimeMillis(),
+                templates = ReadinessTemplateCatalog.optionalItems(scope, group),
+            )
+        }
+    }
+
+    private suspend fun addMissingTemplateItems(
+        tripId: String,
+        scope: io.trippilot.app.core.model.TravelScope,
+        now: Long,
+        templates: List<ReadinessTemplate> = ReadinessTemplateCatalog.requiredItems(scope),
+    ) {
+        // The catalog only fills gaps. It never mutates or removes manual, AI, DONE or SKIPPED rows.
+        val existingPreparation = dao.preparationForTrip(tripId)
+        val existingPacking = dao.packingForTrip(tripId)
+        templates.forEach { item ->
             when (item.type) {
-                ChecklistType.PREPARATION -> if (item.title !in existingPreparation) dao.insertPreparation(
+                ChecklistType.PREPARATION -> if (existingPreparation.none { it.templateId == item.id.name || it.title.trim().equals(item.title, ignoreCase = true) }) dao.insertPreparation(
                     PreparationItemEntity(
                         id = UUID.randomUUID().toString(), tripId = tripId, title = item.title,
                         status = PreparationStatus.TODO, origin = ItemOrigin.DEFAULT, createdAtEpochMs = now,
+                        templateId = item.id.name,
                     ),
                 )
-                ChecklistType.PACKING -> if (item.title !in existingPacking) dao.insertPacking(
+                ChecklistType.PACKING -> if (existingPacking.none { it.templateId == item.id.name || it.title.trim().equals(item.title, ignoreCase = true) }) dao.insertPacking(
                     PackingItemEntity(
                         id = UUID.randomUUID().toString(), tripId = tripId, title = item.title,
                         quantity = 1, isPacked = false, origin = ItemOrigin.DEFAULT, createdAtEpochMs = now,
+                        templateId = item.id.name,
                     ),
                 )
             }
@@ -388,6 +419,130 @@ class TripRepository @Inject constructor(
 
     suspend fun discardPendingShare(shareId: String) = dao.consumeShare(shareId)
 
+    /**
+     * The only route from an AI draft to Room. The draft has already been parsed, then is
+     * revalidated after the user's edits. This performs no Calendar, browser or file action.
+     */
+    suspend fun applyApprovedDraft(trip: TripEntity, selection: ApprovedDraftSelection): DraftApplyResult {
+        when (val validation = TripDraftParser.validateApprovedSelection(selection, trip.startDate, trip.endDate)) {
+            is ContractResult.Invalid -> return DraftApplyResult.Rejected(validation.message)
+            is ContractResult.Valid -> Unit
+        }
+        return database.withTransaction {
+            val itineraryByDraftId = linkedMapOf<String, String>()
+            val reservationByDraftId = linkedMapOf<String, String>()
+            val warnings = mutableListOf<String>()
+            var itineraryAdded = 0
+            var reservationAdded = 0
+            var preparationAdded = 0
+            var packingAdded = 0
+            var sourceAdded = 0
+
+            val existingItinerary = dao.itineraryForTrip(trip.id).toMutableList()
+            selection.itinerary.forEach { item ->
+                val matched = existingItinerary.firstOrNull {
+                    it.date == item.date && it.startMinute == item.startMinute &&
+                        it.title.trim().equals(item.title.trim(), ignoreCase = true) &&
+                        it.location.trim().equals(item.location.trim(), ignoreCase = true)
+                }
+                if (matched != null) {
+                    itineraryByDraftId[item.id] = matched.id
+                    warnings += "이미 있는 일정은 건너뛰었습니다: ${item.title}"
+                } else {
+                    val id = UUID.randomUUID().toString()
+                    val entity = ItineraryItemEntity(
+                        id = id, tripId = trip.id, date = item.date, startMinute = item.startMinute,
+                        endMinute = null, allDay = item.startMinute == null, title = item.title.trim(),
+                        location = item.location.trim(), notes = item.notes.trim(), sortOrder = item.startMinute ?: Int.MAX_VALUE,
+                    )
+                    dao.insertItinerary(entity)
+                    existingItinerary += entity
+                    itineraryByDraftId[item.id] = id
+                    itineraryAdded++
+                }
+            }
+
+            val existingReservations = dao.reservationsForTrip(trip.id).toMutableList()
+            selection.reservations.forEach { item ->
+                val matched = existingReservations.firstOrNull {
+                    it.confirmationCode.trim().equals(item.confirmationCode.trim(), ignoreCase = true) ||
+                        (!item.sourceUrl.isNullOrBlank() && it.url == item.sourceUrl.trim())
+                }
+                if (matched != null) {
+                    reservationByDraftId[item.id] = matched.id
+                    warnings += "중복 예약은 건너뛰었습니다: ${item.provider}"
+                } else {
+                    val id = UUID.randomUUID().toString()
+                    val entity = ReservationEntity(
+                        id = id, tripId = trip.id, type = item.type.name, provider = item.provider.trim(),
+                        confirmationCode = item.confirmationCode.trim(), dateTime = item.dateTime?.trim()?.ifBlank { null },
+                        location = item.location.trim(), url = item.sourceUrl?.trim()?.ifBlank { null },
+                        status = ReservationStatus.DRAFT, notes = "",
+                    )
+                    dao.insertReservation(entity)
+                    existingReservations += entity
+                    reservationByDraftId[item.id] = id
+                    reservationAdded++
+                }
+            }
+
+            val existingPreparation = dao.preparationForTrip(trip.id).map { it.title.trim().lowercase() }.toMutableSet()
+            selection.preparation.forEach { item ->
+                val key = item.title.trim().lowercase()
+                if (existingPreparation.add(key)) {
+                    dao.insertPreparation(
+                        PreparationItemEntity(
+                            id = UUID.randomUUID().toString(), tripId = trip.id, title = item.title.trim(),
+                            status = PreparationStatus.TODO, origin = ItemOrigin.AI, createdAtEpochMs = System.currentTimeMillis(),
+                        ),
+                    )
+                    preparationAdded++
+                } else warnings += "이미 있는 준비 항목은 건너뛰었습니다: ${item.title}"
+            }
+
+            val existingPacking = dao.packingForTrip(trip.id).map { it.title.trim().lowercase() }.toMutableSet()
+            selection.packing.forEach { item ->
+                val key = item.title.trim().lowercase()
+                if (existingPacking.add(key)) {
+                    dao.insertPacking(
+                        PackingItemEntity(
+                            id = UUID.randomUUID().toString(), tripId = trip.id, title = item.title.trim(),
+                            quantity = item.quantity, isPacked = false, origin = ItemOrigin.AI, createdAtEpochMs = System.currentTimeMillis(),
+                        ),
+                    )
+                    packingAdded++
+                } else warnings += "이미 있는 짐 항목은 건너뛰었습니다: ${item.title}"
+            }
+
+            selection.sources.forEach { source ->
+                val itineraryId = itineraryByDraftId[source.relatedItemId]
+                val reservationId = reservationByDraftId[source.relatedItemId]
+                val ownerType = if (itineraryId != null) SourceOwnerType.ITINERARY else SourceOwnerType.RESERVATION
+                val ownerId = itineraryId ?: reservationId
+                if (ownerId == null) {
+                    warnings += "연결 항목을 적용하지 않은 출처는 저장하지 않았습니다: ${source.title}"
+                } else {
+                    val existing = dao.sourcesForOwner(ownerType, ownerId)
+                    val withinOwnerLimit = ownerType != SourceOwnerType.ITINERARY || existing.size < 3
+                    if (existing.any { it.url == source.url.trim() }) {
+                        warnings += "이미 있는 출처는 건너뛰었습니다: ${source.title}"
+                    } else if (!withinOwnerLimit) {
+                        warnings += "일정당 출처 제한으로 건너뛰었습니다: ${source.title}"
+                    } else {
+                        dao.insertSource(
+                            SourceEvidenceEntity(
+                                id = UUID.randomUUID().toString(), tripId = trip.id, ownerType = ownerType,
+                                ownerId = ownerId, url = source.url.trim(), title = source.title.trim(), lastCheckedAtEpochMs = null,
+                            ),
+                        )
+                        sourceAdded++
+                    }
+                }
+            }
+            DraftApplyResult.Applied(itineraryAdded, reservationAdded, preparationAdded, packingAdded, sourceAdded, warnings)
+        }
+    }
+
     suspend fun createBackupDocument(): TripBackupDocument {
         val trips = dao.observeTrips().first()
         return TripBackupDocument(trips = trips.map { trip ->
@@ -401,8 +556,8 @@ class TripRepository @Inject constructor(
                 title = trip.title, destination = trip.destination, startDate = trip.startDate, endDate = trip.endDate,
                 timezone = trip.timezone, scope = trip.scope.name, notes = trip.notes,
                 itinerary = itinerary.map { TripBackupItinerary(it.date, it.startMinute, it.title, it.location, it.notes) },
-                preparation = preparation.map { TripBackupPreparation(it.title, it.status.name, it.origin.name) },
-                packing = packing.map { TripBackupPacking(it.title, it.quantity, it.isPacked, it.origin.name) },
+                preparation = preparation.map { TripBackupPreparation(it.title, it.status.name, it.origin.name, it.templateId) },
+                packing = packing.map { TripBackupPacking(it.title, it.quantity, it.isPacked, it.origin.name, it.templateId) },
                 reservations = reservations.map { TripBackupReservation(it.type, it.provider, it.confirmationCode, it.dateTime, it.location, it.url, it.status.name, it.notes) },
                 sources = dao.observeSources(trip.id).first().mapNotNull { source ->
                     when (source.ownerType) {
@@ -434,10 +589,31 @@ class TripRepository @Inject constructor(
                     }
                 }
                 backup.preparation.forEach { item ->
-                    dao.insertPreparation(PreparationItemEntity(UUID.randomUUID().toString(), tripId, item.title.trim(), PreparationStatus.valueOf(item.status), ItemOrigin.valueOf(item.origin), now))
+                    dao.insertPreparation(
+                        PreparationItemEntity(
+                            UUID.randomUUID().toString(),
+                            tripId,
+                            item.title.trim(),
+                            PreparationStatus.valueOf(item.status),
+                            ItemOrigin.valueOf(item.origin),
+                            now,
+                            item.templateId,
+                        ),
+                    )
                 }
                 backup.packing.forEach { item ->
-                    dao.insertPacking(PackingItemEntity(UUID.randomUUID().toString(), tripId, item.title.trim(), item.quantity, item.isPacked, ItemOrigin.valueOf(item.origin), now))
+                    dao.insertPacking(
+                        PackingItemEntity(
+                            UUID.randomUUID().toString(),
+                            tripId,
+                            item.title.trim(),
+                            item.quantity,
+                            item.isPacked,
+                            ItemOrigin.valueOf(item.origin),
+                            now,
+                            item.templateId,
+                        ),
+                    )
                 }
                 backup.sources.forEach { item ->
                     val ownerId = if (item.ownerType == "ITINERARY") itineraryIds[item.ownerIndex] else reservationIds[item.ownerIndex]
@@ -450,4 +626,17 @@ class TripRepository @Inject constructor(
     }
 
     suspend fun deleteTrip(tripId: String) = dao.deleteTrip(tripId)
+}
+
+sealed interface DraftApplyResult {
+    data class Applied(
+        val itineraryAdded: Int,
+        val reservationAdded: Int,
+        val preparationAdded: Int,
+        val packingAdded: Int,
+        val sourceAdded: Int,
+        val warnings: List<String>,
+    ) : DraftApplyResult
+
+    data class Rejected(val message: String) : DraftApplyResult
 }

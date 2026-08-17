@@ -9,6 +9,7 @@ import io.trippilot.app.core.data.db.PackingItemEntity
 import io.trippilot.app.core.data.db.PreparationItemEntity
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.model.RecheckResult
+import io.trippilot.app.core.model.ChecklistGroup
 import io.trippilot.app.core.model.ReservationStatus
 import io.trippilot.app.core.model.TravelScope
 import io.trippilot.app.core.model.TripInput
@@ -58,24 +59,39 @@ class TripViewModel @Inject constructor(
             report(repository.updateTrip(trip, TripInput(title, destination, startDate, endDate, trip.timezone, scope, trip.notes)))
         }
 
-    fun addItinerary(trip: TripEntity, title: String, date: String, hour: String, location: String) = viewModelScope.launch {
+    fun addItinerary(
+        trip: TripEntity,
+        title: String,
+        date: String,
+        hour: String,
+        location: String,
+        notes: String = "",
+    ) = viewModelScope.launch {
         val minute = parseTime(hour)
         if (hour.isNotBlank() && minute == null) {
             mutableMessage.emit("시각은 HH:mm 형식으로 입력하세요.")
             return@launch
         }
-        report(repository.addItinerary(trip, title, date, minute, location, ""))
+        report(repository.addItinerary(trip, title, date, minute, location, notes))
     }
 
     fun deleteItinerary(itemId: String) = viewModelScope.launch { repository.deleteItinerary(itemId) }
 
-    fun updateItinerary(trip: TripEntity, itemId: String, title: String, date: String, hour: String, location: String) = viewModelScope.launch {
+    fun updateItinerary(
+        trip: TripEntity,
+        itemId: String,
+        title: String,
+        date: String,
+        hour: String,
+        location: String,
+        notes: String = "",
+    ) = viewModelScope.launch {
         val minute = parseTime(hour)
         if (hour.isNotBlank() && minute == null) {
             mutableMessage.emit("시각은 HH:mm 형식으로 입력하세요.")
             return@launch
         }
-        report(repository.updateItinerary(trip, itemId, title, date, minute, location, ""))
+        report(repository.updateItinerary(trip, itemId, title, date, minute, location, notes))
     }
 
     fun addPreparation(tripId: String, title: String) = viewModelScope.launch { report(repository.addPreparation(tripId, title)) }
@@ -126,6 +142,10 @@ class TripViewModel @Inject constructor(
     fun applyScopeDefaults(tripId: String, scope: TravelScope) = viewModelScope.launch {
         repository.applyMissingScopeDefaults(tripId, scope)
         mutableMessage.emit("누락된 기본 항목만 추가했습니다.")
+    }
+    fun applyOptionalReadinessPack(tripId: String, scope: TravelScope, group: ChecklistGroup) = viewModelScope.launch {
+        repository.applyOptionalReadinessPack(tripId, scope, group)
+        mutableMessage.emit("${group.label} 선택 팩의 누락 항목만 추가했습니다.")
     }
     fun deleteTrip(tripId: String) = viewModelScope.launch {
         repository.deleteTrip(tripId)

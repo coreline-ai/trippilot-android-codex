@@ -4,7 +4,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 private val PilotNavy = Color(0xFF10243F)
 private val CloudPaper = Color(0xFFF5F8FA)
@@ -71,3 +73,9 @@ fun TripPilotTheme(
 
 internal val TripPilotBoardingOrange = BoardingOrange
 internal val TripPilotMossGreen = MossGreen
+internal val TripPilotHeroShape = RoundedCornerShape(28.dp)
+internal val TripPilotHeroScrimTop = Color(0x33061227)
+internal val TripPilotHeroScrimMiddle = Color(0x66061227)
+internal val TripPilotHeroScrimBottom = Color(0xE6081525)
+internal val TripPilotHeroText = Color(0xFFE8F5FA)
+internal val TripPilotHeroTitle = Color.White

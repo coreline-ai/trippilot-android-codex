@@ -1,8 +1,12 @@
 package io.trippilot.app.core.design
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -26,11 +30,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,7 +44,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -57,26 +62,44 @@ import io.trippilot.app.core.data.db.ReservationEntity
 import io.trippilot.app.core.data.db.SourceEvidenceEntity
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.model.ItemOrigin
+import io.trippilot.app.core.model.ChecklistGroup
+import io.trippilot.app.core.model.ChecklistType
 import io.trippilot.app.core.model.CompletionPolicy
 import io.trippilot.app.core.model.PreparationStatus
 import io.trippilot.app.core.model.RecheckResult
 import io.trippilot.app.core.model.ReservationStatus
 import io.trippilot.app.core.model.SourceOwnerType
 import io.trippilot.app.core.model.TravelScope
+import io.trippilot.app.core.model.ReadinessTemplateCatalog
 import io.trippilot.app.feature.trips.TripViewModel
+import io.trippilot.app.feature.drafts.DraftPlannerSection
+import io.trippilot.app.feature.drafts.TripDraftViewModel
+import io.trippilot.app.feature.external.ExternalActionsSection
+import io.trippilot.app.feature.external.TripExternalViewModel
+import io.trippilot.app.feature.external.TripFileViewModel
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
 
-private enum class TripSection(val label: String) {
-    SUMMARY("개요"), ITINERARY("일정"), READINESS("준비"), RESERVATIONS("예약"), SOURCES("출처")
+private enum class TripArea(val label: String) {
+    JOURNEY("여정"), PREPARE("준비"), STORAGE("보관함"), HELP("도움")
 }
+
+private enum class JourneyPage(val label: String) { SUMMARY("브리핑"), ITINERARY("일정") }
+private enum class StoragePage(val label: String) { RESERVATIONS("예약"), SOURCES("출처") }
+private enum class HelpPage(val label: String) { DRAFTS("AI 초안"), EXTERNAL("외부 실행") }
 
 private data class SourceTarget(val ownerType: SourceOwnerType, val ownerId: String, val title: String)
 
-/** Local first: no runtime, OAuth, or network call is made by this surface. */
+/** Local-first app shell; Phase 5 external actions are isolated behind explicit confirmation UI. */
 @Composable
-fun TripPilotApp(viewModel: TripViewModel, incomingShareText: String? = null) {
+fun TripPilotApp(
+    viewModel: TripViewModel,
+    draftViewModel: TripDraftViewModel,
+    externalViewModel: TripExternalViewModel,
+    fileViewModel: TripFileViewModel,
+    incomingShareText: String? = null,
+) {
     val trips by viewModel.trips.collectAsState()
     val selectedTripId by viewModel.selectedTripId.collectAsState()
     val selectedTrip = trips.firstOrNull { it.id == selectedTripId }
@@ -86,15 +109,11 @@ fun TripPilotApp(viewModel: TripViewModel, incomingShareText: String? = null) {
     LaunchedEffect(incomingShareText) { viewModel.receivePlainTextShare(incomingShareText) }
     LaunchedEffect(Unit) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
 
-    Scaffold(
-        topBar = { TripPilotTopBar(if (selectedTrip == null) "TripPilot" else selectedTrip.title) },
-        snackbarHost = { SnackbarHost(snackbar) },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { padding ->
+    TripBriefScaffold(snackbarHostState = snackbar) { padding, _ ->
         if (selectedTrip == null) {
             TripListScreen(trips, padding, viewModel::selectTrip, viewModel::createTrip)
         } else {
-            TripDetailScreen(selectedTrip, padding, viewModel, { viewModel.selectTrip(null) }) {
+            TripDetailScreen(selectedTrip, padding, viewModel, draftViewModel, externalViewModel, fileViewModel, { viewModel.selectTrip(null) }) {
                 coroutineScope.launch { snackbar.showSnackbar(it) }
             }
         }
@@ -108,21 +127,32 @@ private fun TripListScreen(
     onTripSelected: (String) -> Unit,
     onCreateTrip: (String, String, String, String, TravelScope) -> Unit,
 ) {
+    val orderedTrips = remember(trips) { trips.sortedBy { it.startDate } }
     var showCreateDialog by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxSize().padding(padding).safeDrawingPadding().padding(horizontal = 20.dp, vertical = 12.dp)
             .testTag("trip_list_screen"),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("내 여행", style = MaterialTheme.typography.displaySmall)
-        Text("모든 여행 기록은 이 기기에만 저장됩니다. 로그인이나 네트워크 없이 시작할 수 있어요.")
-        if (trips.isEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            EmptyState("아직 여행이 없습니다", "새 여행을 만들면 일정과 준비 항목을 직접 정리할 수 있어요.", R.drawable.trippilot_empty_trips)
+        Text("TripPilot", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Text("나의 여정", style = MaterialTheme.typography.displaySmall)
+        Text(
+            if (orderedTrips.isEmpty()) "일정, 준비, 예약을 이 기기에 차분히 모아 보세요."
+            else "다음 여행을 먼저 확인하고, 나머지 기록은 아래에서 이어서 보세요.",
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        JourneyHero(trip = orderedTrips.firstOrNull(), onTripSelected = onTripSelected)
+        if (orderedTrips.isEmpty()) {
+            Text("첫 여행은 제목, 목적지, 기간만 정하면 바로 시작할 수 있어요.", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.weight(1f))
         } else {
-            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(trips, key = { it.id }) { trip -> TripCard(trip) { onTripSelected(trip.id) } }
+            if (orderedTrips.size == 1) {
+                Spacer(Modifier.weight(1f))
+            } else {
+                Text("다른 여정", style = MaterialTheme.typography.titleMedium)
+                LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(orderedTrips.drop(1), key = { it.id }) { trip -> TripCard(trip) { onTripSelected(trip.id) } }
+                }
             }
         }
         PrimaryAction("새 여행 만들기", { showCreateDialog = true })
@@ -132,6 +162,75 @@ private fun TripListScreen(
             onCreateTrip(title, destination, start, end, scope)
             showCreateDialog = false
         })
+    }
+}
+
+@Composable
+private fun JourneyHero(trip: TripEntity?, onTripSelected: (String) -> Unit) {
+    val title = trip?.title ?: "아직 출발 전이에요"
+    val body = trip?.let { "${it.destination} · ${it.startDate} ~ ${it.endDate}" }
+        ?: "첫 여정을 만들고 일정과 준비를 한곳에 기록하세요"
+    val interaction = if (trip == null) {
+        Modifier
+    } else {
+        Modifier
+            .clickable { onTripSelected(trip.id) }
+            .semantics { contentDescription = "${trip.title}, ${trip.destination}, ${trip.startDate}부터 ${trip.endDate}" }
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(198.dp)
+            .then(interaction)
+            .testTag("journey_hero"),
+        shape = TripPilotHeroShape,
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+    ) {
+        Box {
+            Image(
+                painter = painterResource(R.drawable.trippilot_field_route_hero_v1),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to TripPilotHeroScrimTop,
+                            0.56f to TripPilotHeroScrimMiddle,
+                            1f to TripPilotHeroScrimBottom,
+                        ),
+                    ),
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = if (trip == null) "나만의 여행 기록" else "다음 여정",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TripPilotHeroText,
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = TripPilotHeroTitle,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TripPilotHeroText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
@@ -154,10 +253,126 @@ private fun TripCard(trip: TripEntity, onClick: () -> Unit) {
 }
 
 @Composable
+private fun TripDetailHeader(
+    trip: TripEntity,
+    isBriefing: Boolean,
+    stages: List<JourneyStage>,
+    selectedStageId: String,
+    onStageSelected: (JourneyStage) -> Unit,
+    onBack: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    val compactHeight = LocalConfiguration.current.screenHeightDp < 640
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .testTag("trip_brief_header"),
+        color = if (isBriefing) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        contentColor = if (isBriefing) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            Modifier.padding(if (isBriefing && !compactHeight) 16.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack, modifier = Modifier.testTag("back_to_trips")) { Text("목록") }
+                Text(
+                    trip.title,
+                    modifier = Modifier.weight(1f),
+                    style = if (isBriefing && !compactHeight) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+                    maxLines = if (isBriefing) 2 else 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                TextButton(onClick = onEdit) { Text("수정") }
+            }
+            Text("${trip.destination} · ${trip.startDate} — ${trip.endDate}", style = MaterialTheme.typography.bodyMedium)
+            if (isBriefing) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StatusChip(scopeLabel(trip.scope))
+                    Text("여행 브리핑", style = MaterialTheme.typography.labelLarge)
+                }
+                JourneyStageStrip(
+                    stages = stages,
+                    selectedStageId = selectedStageId,
+                    summary = stageSummary(stages, selectedStageId),
+                    onStageSelected = onStageSelected,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TripAreaNavigation(selected: TripArea, onSelected: (TripArea) -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth().testTag("trip_area_navigation"),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Row(Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TripArea.entries.forEach { candidate ->
+                val isSelected = candidate == selected
+                if (isSelected) {
+                    Button(
+                        onClick = { onSelected(candidate) },
+                        modifier = Modifier.weight(1f).testTag("trip_area_${candidate.name.lowercase()}"),
+                    ) { Text(candidate.label, maxLines = 1) }
+                } else {
+                    TextButton(
+                        onClick = { onSelected(candidate) },
+                        modifier = Modifier.weight(1f).testTag("trip_area_${candidate.name.lowercase()}"),
+                    ) { Text(candidate.label, maxLines = 1) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun <T> SubPageNavigation(
+    entries: List<T>,
+    selected: T,
+    onSelected: (T) -> Unit,
+    label: (T) -> String,
+    tag: (T) -> String,
+    group: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Row(Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        entries.forEach { candidate ->
+            val isSelected = candidate == selected
+            if (isSelected) {
+                Button(
+                    onClick = { onSelected(candidate) },
+                    modifier = Modifier.weight(1f).testTag("trip_subpage_${group}_${tag(candidate)}"),
+                ) { Text(label(candidate), maxLines = 1) }
+            } else {
+                OutlinedButton(
+                    onClick = { onSelected(candidate) },
+                    modifier = Modifier.weight(1f).testTag("trip_subpage_${group}_${tag(candidate)}"),
+                ) { Text(label(candidate), maxLines = 1) }
+            }
+        }
+        }
+    }
+}
+
+@Composable
 private fun TripDetailScreen(
     trip: TripEntity,
     padding: PaddingValues,
     viewModel: TripViewModel,
+    draftViewModel: TripDraftViewModel,
+    externalViewModel: TripExternalViewModel,
+    fileViewModel: TripFileViewModel,
     onBack: () -> Unit,
     onMessage: (String) -> Unit,
 ) {
@@ -168,9 +383,14 @@ private fun TripDetailScreen(
     val sources by viewModel.observeSources(trip.id).collectAsState(emptyList())
     val storedShares by viewModel.observeActiveShares(trip.id).collectAsState(emptyList())
     val incomingShare by viewModel.pendingShareText.collectAsState()
-    var section by remember(trip.id) { mutableStateOf(TripSection.SUMMARY) }
+    var area by remember(trip.id) { mutableStateOf(TripArea.JOURNEY) }
+    var journeyPage by remember(trip.id) { mutableStateOf(JourneyPage.SUMMARY) }
+    var selectedStageId by remember(trip.id) { mutableStateOf(defaultJourneyStageId(trip)) }
+    var storagePage by remember(trip.id) { mutableStateOf(StoragePage.RESERVATIONS) }
+    var helpPage by remember(trip.id) { mutableStateOf(HelpPage.DRAFTS) }
     var showTripEdit by remember { mutableStateOf(false) }
     var showItineraryAdd by remember { mutableStateOf(false) }
+    var itineraryAddDate by remember(trip.id) { mutableStateOf(trip.startDate) }
     var itineraryEdit by remember { mutableStateOf<ItineraryItemEntity?>(null) }
     var showPreparationAdd by remember { mutableStateOf(false) }
     var showPackingAdd by remember { mutableStateOf(false) }
@@ -181,45 +401,118 @@ private fun TripDetailScreen(
     var recheckSource by remember { mutableStateOf<SourceEvidenceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<String?>(null) }
 
-    Column(Modifier.fillMaxSize().padding(padding).safeDrawingPadding().testTag("trip_detail_screen")) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack, modifier = Modifier.testTag("back_to_trips")) { Text("목록") }
-            Column(Modifier.weight(1f)) {
-                Text(trip.destination, style = MaterialTheme.typography.titleMedium)
-                Text("${trip.startDate} · ${trip.endDate}", style = MaterialTheme.typography.bodySmall)
-            }
-            TextButton(onClick = { showTripEdit = true }) { Text("수정") }
-        }
-        RouteRibbon(0, tripDayCount(trip.startDate, trip.endDate), 1, Modifier.padding(horizontal = 20.dp))
+    val stages = remember(trip, itinerary, preparation, packing) {
+        journeyStages(trip, itinerary, preparation, packing)
+    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .safeDrawingPadding()
+            .testTag("trip_detail_screen"),
+    ) {
+        TripDetailHeader(
+            trip = trip,
+            isBriefing = area == TripArea.JOURNEY && journeyPage == JourneyPage.SUMMARY,
+            stages = stages,
+            selectedStageId = selectedStageId,
+            onStageSelected = { stage ->
+                selectedStageId = stage.id
+                if (stage.id.length == 10 && stage.id[4] == '-') {
+                    area = TripArea.JOURNEY
+                    journeyPage = JourneyPage.ITINERARY
+                }
+            },
+            onBack = onBack,
+            onEdit = { showTripEdit = true },
+        )
         if (incomingShare != null) {
-            SurfaceNotice("공유한 예약 텍스트", "이 여행에만 24시간 동안 임시 보관합니다. 자동 분석이나 예약 저장은 하지 않습니다.") {
+            SurfaceNotice("공유한 예약 텍스트", "이 여행에만 24시간 동안 임시 보관합니다. 자동 분석이나 예약 저장은 하지 않습니다.", Modifier.padding(horizontal = 20.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { viewModel.savePendingShare(trip.id) }, modifier = Modifier.testTag("save_shared_text")) { Text("이 여행에 보관") }
                     TextButton(onClick = viewModel::dismissPendingShare) { Text("무시") }
                 }
             }
         }
-        TabRow(section.ordinal) {
-            TripSection.entries.forEach { candidate ->
-                Tab(section == candidate, { section = candidate }, text = { Text(candidate.label) }, modifier = Modifier.testTag("trip_section_${candidate.name.lowercase()}"))
+        TripAreaNavigation(area, { area = it }, Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        // The header and primary areas stay reachable on short screens. Each body is
+        // constrained to the remaining viewport, so its own scroll surface can expose
+        // the section action instead of being clipped below the fold.
+        Box(Modifier.weight(1f)) {
+            when (area) {
+                TripArea.JOURNEY -> {
+                    Column(Modifier.fillMaxSize()) {
+                        SubPageNavigation(JourneyPage.entries.toList(), journeyPage, { journeyPage = it }, { it.label }, { it.name.lowercase() }, "journey", Modifier.padding(horizontal = 20.dp))
+                        when (journeyPage) {
+                            JourneyPage.SUMMARY -> TripSummary(
+                                trip = trip,
+                                itineraryCount = itinerary.size,
+                                preparation = preparation,
+                                packing = packing,
+                                reservations = reservations,
+                                sourceCount = sources.size,
+                                onApplyDefaults = { viewModel.applyScopeDefaults(trip.id, trip.scope) },
+                                onOpenDraft = { area = TripArea.HELP; helpPage = HelpPage.DRAFTS },
+                                onOpenPrepare = { area = TripArea.PREPARE },
+                                onOpenItinerary = { area = TripArea.JOURNEY; journeyPage = JourneyPage.ITINERARY },
+                                onOpenReservations = { area = TripArea.STORAGE; storagePage = StoragePage.RESERVATIONS },
+                                onDelete = { deleteTarget = "trip" },
+                            )
+                            JourneyPage.ITINERARY -> ItinerarySection(
+                                trip = trip,
+                                itinerary = itinerary,
+                                selectedDate = selectedStageId.takeIf(::isIsoDate),
+                                onDateSelected = { selectedStageId = it },
+                                onAdd = { date -> itineraryAddDate = date; showItineraryAdd = true },
+                                onEdit = { itineraryEdit = it },
+                                onDelete = { deleteTarget = "itinerary:$it" },
+                                onSource = { sourceTarget = SourceTarget(SourceOwnerType.ITINERARY, it.id, it.title) },
+                            )
+                        }
+                    }
+                }
+                TripArea.PREPARE -> ReadinessSection(
+                    scope = trip.scope,
+                    preparation = preparation,
+                    packing = packing,
+                    onAddPreparation = { showPreparationAdd = true },
+                    onAddPacking = { showPackingAdd = true },
+                    onApplyOptionalPack = { group -> viewModel.applyOptionalReadinessPack(trip.id, trip.scope, group) },
+                    onTogglePreparation = viewModel::togglePreparation,
+                    onSkipPreparation = viewModel::skipPreparation,
+                    onTogglePacking = viewModel::togglePacking,
+                    onDeletePreparation = viewModel::deletePreparation,
+                    onDeletePacking = viewModel::deletePacking,
+                )
+                TripArea.STORAGE -> {
+                    Column(Modifier.fillMaxSize()) {
+                        SubPageNavigation(StoragePage.entries.toList(), storagePage, { storagePage = it }, { it.label }, { it.name.lowercase() }, "storage", Modifier.padding(horizontal = 20.dp))
+                        when (storagePage) {
+                            StoragePage.RESERVATIONS -> ReservationSection(reservations, storedShares.map { it.sharedText }, { showReservationAdd = true }, { reservationEdit = it }, { sourceTarget = SourceTarget(SourceOwnerType.RESERVATION, it.id, it.provider) }, viewModel::deleteReservation) { index -> storedShares.getOrNull(index)?.let { viewModel.discardPendingShare(it.id) } }
+                            StoragePage.SOURCES -> SourcesSection(sources, { sourceEdit = it }, { recheckSource = it }, viewModel::deleteSource)
+                        }
+                    }
+                }
+                TripArea.HELP -> {
+                    Column(Modifier.fillMaxSize()) {
+                        SubPageNavigation(HelpPage.entries.toList(), helpPage, { helpPage = it }, { it.label }, { it.name.lowercase() }, "help", Modifier.padding(horizontal = 20.dp))
+                        when (helpPage) {
+                            HelpPage.DRAFTS -> DraftPlannerSection(trip, draftViewModel)
+                            HelpPage.EXTERNAL -> ExternalActionsSection(trip, itinerary, reservations, sources, externalViewModel, fileViewModel, onMessage)
+                        }
+                    }
+                }
             }
-        }
-        when (section) {
-            TripSection.SUMMARY -> TripSummary(trip, itinerary.size, preparation, packing, reservations.size, { viewModel.applyScopeDefaults(trip.id, trip.scope) }, { deleteTarget = "trip" })
-            TripSection.ITINERARY -> ItinerarySection(itinerary, { showItineraryAdd = true }, { itineraryEdit = it }, { deleteTarget = "itinerary:$it" }, { sourceTarget = SourceTarget(SourceOwnerType.ITINERARY, it.id, it.title) })
-            TripSection.READINESS -> ReadinessSection(preparation, packing, { showPreparationAdd = true }, { showPackingAdd = true }, viewModel::togglePreparation, viewModel::skipPreparation, viewModel::togglePacking, viewModel::deletePreparation, viewModel::deletePacking)
-            TripSection.RESERVATIONS -> ReservationSection(reservations, storedShares.map { it.sharedText }, { showReservationAdd = true }, { reservationEdit = it }, { sourceTarget = SourceTarget(SourceOwnerType.RESERVATION, it.id, it.provider) }, viewModel::deleteReservation) { index -> storedShares.getOrNull(index)?.let { viewModel.discardPendingShare(it.id) } }
-            TripSection.SOURCES -> SourcesSection(sources, { sourceEdit = it }, { recheckSource = it }, viewModel::deleteSource)
         }
     }
     if (showTripEdit) TripEditorDialog("여행 수정", "저장", onDismiss = { showTripEdit = false }, initial = trip, onConfirm = { title, destination, start, end, scope ->
         viewModel.updateTrip(trip, title, destination, start, end, scope); showTripEdit = false
     })
-    if (showItineraryAdd) ItineraryDialog(trip, { showItineraryAdd = false }) { title, date, time, location ->
-        viewModel.addItinerary(trip, title, date, time, location); showItineraryAdd = false
+    if (showItineraryAdd) ItineraryDialog(trip, { showItineraryAdd = false }, initialDate = itineraryAddDate) { title, date, time, location, notes ->
+        viewModel.addItinerary(trip, title, date, time, location, notes); showItineraryAdd = false
     }
-    itineraryEdit?.let { item -> ItineraryDialog(trip, { itineraryEdit = null }, initial = item) { title, date, time, location ->
-        viewModel.updateItinerary(trip, item.id, title, date, time, location); itineraryEdit = null
+    itineraryEdit?.let { item -> ItineraryDialog(trip, { itineraryEdit = null }, initial = item) { title, date, time, location, notes ->
+        viewModel.updateItinerary(trip, item.id, title, date, time, location, notes); itineraryEdit = null
     } }
     if (showPreparationAdd) SimpleTextDialog("준비 항목 추가", "준비할 일", { showPreparationAdd = false }) { viewModel.addPreparation(trip.id, it); showPreparationAdd = false }
     if (showPackingAdd) PackingDialog({ showPackingAdd = false }) { title, quantity -> viewModel.addPacking(trip.id, title, quantity); showPackingAdd = false }
@@ -251,45 +544,433 @@ private fun TripDetailScreen(
 }
 
 @Composable
-private fun TripSummary(trip: TripEntity, itineraryCount: Int, preparation: List<PreparationItemEntity>, packing: List<PackingItemEntity>, reservationCount: Int, onApplyDefaults: () -> Unit, onDelete: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(trip.title, style = MaterialTheme.typography.headlineMedium)
-        StatusChip(scopeLabel(trip.scope))
-        Text("${trip.startDate}부터 ${trip.endDate}까지 ${trip.destination}")
-        SummaryMetric("일정", "${itineraryCount}개")
-        SummaryMetric("준비", "${preparationRate(preparation)}% 완료")
-        SummaryMetric("짐", "${packingRate(packing)}% 챙김")
-        SummaryMetric("예약", "${reservationCount}개")
-        SurfaceNotice("기본 준비 항목", "${scopeLabel(trip.scope)} 범위의 누락 항목만 추가합니다. 직접 적거나 완료한 항목은 삭제하지 않습니다.") {
+private fun TripSummary(
+    trip: TripEntity,
+    itineraryCount: Int,
+    preparation: List<PreparationItemEntity>,
+    packing: List<PackingItemEntity>,
+    reservations: List<ReservationEntity>,
+    sourceCount: Int,
+    onApplyDefaults: () -> Unit,
+    onOpenDraft: () -> Unit,
+    onOpenPrepare: () -> Unit,
+    onOpenItinerary: () -> Unit,
+    onOpenReservations: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val preparationPercent = preparationRate(preparation)
+    val packingPercent = packingRate(packing)
+    val readinessPending = preparation.count { it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED } +
+        packing.count { !it.isPacked }
+    val nextAction = when {
+        readinessPending > 0 -> Triple(
+            "출발 전 준비를 먼저 확인하세요",
+            "준비할 일과 짐에서 ${readinessPending}개가 아직 남아 있습니다.",
+            onOpenPrepare,
+        )
+        itineraryCount == 0 -> Triple(
+            "첫 일정의 시간과 장소를 기록하세요",
+            "여행 기간에 맞춰 직접 추가한 일정만 여기에 표시합니다.",
+            onOpenItinerary,
+        )
+        reservations.isEmpty() -> Triple(
+            "확정한 예약을 보관하세요",
+            "예약처와 확인번호는 사용자가 직접 확인한 뒤 기록합니다.",
+            onOpenReservations,
+        )
+        else -> Triple(
+            "여행 기록이 준비되었습니다",
+            "변경 사항은 일정, 준비, 보관함에서 직접 검토할 수 있습니다.",
+            onOpenItinerary,
+        )
+    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+            .testTag("trip_briefing_screen"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text("여행 브리핑", style = MaterialTheme.typography.headlineSmall)
+        Text("${trip.startDate} — ${trip.endDate} · ${trip.destination}", style = MaterialTheme.typography.bodyLarge)
+        BriefingPanel(
+            kind = "next_action",
+            eyebrow = "다음 확인",
+            title = nextAction.first,
+            body = nextAction.second,
+            action = { TextButton(onClick = nextAction.third, modifier = Modifier.testTag("briefing_next_action")) { Text("확인하기") } },
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth().testTag("briefing_progress"),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = MaterialTheme.shapes.large,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("현재 상태", style = MaterialTheme.typography.titleMedium)
+                SummaryMetric("일정", "${itineraryCount}개")
+                SummaryMetric("준비", "${preparationPercent}% 완료")
+                SummaryMetric("짐", "${packingPercent}% 챙김")
+                SummaryMetric("예약", "${reservations.size}개")
+            }
+        }
+        val reservation = reservations.firstOrNull()
+        if (reservation == null) {
+            BriefingPanel(
+                kind = "status",
+                eyebrow = "여행 서류",
+                title = "아직 보관한 예약이 없습니다",
+                body = "항공, 숙소, 교통 예약은 확인번호와 함께 보관함에 직접 추가할 수 있습니다.",
+            )
+        } else {
+            DocumentRow(
+                title = reservation.provider,
+                detail = "${reservation.type} · 확인번호 ${reservation.confirmationCode}",
+                supporting = reservation.dateTime ?: reservation.location.ifBlank { "날짜와 장소는 아직 기록하지 않았습니다." },
+                onOpen = onOpenReservations,
+            )
+        }
+        BriefingPanel(
+            kind = "status",
+            eyebrow = "연결 출처",
+            title = if (sourceCount == 0) "연결한 출처가 없습니다" else "출처 ${sourceCount}개를 기록했습니다",
+            body = "링크는 직접 추가한 텍스트만 보관하며, 앱이 자동으로 열거나 검사하지 않습니다.",
+        )
+        SurfaceNotice("기본 준비 팩", "${scopeLabel(trip.scope)} 범위에서 누락된 기본 항목만 더합니다. 직접 적거나 완료한 항목은 바꾸지 않습니다.") {
             OutlinedButton(onClick = onApplyDefaults) { Text("기본 항목 다시 적용") }
         }
-        SurfaceNotice("Codex 초안", "AI 연결과 초안 검토는 다음 단계에서 추가됩니다. 현재 화면은 로그인 없이 작동합니다.") {}
+        BriefingPanel(
+            kind = "draft",
+            eyebrow = "AI 초안",
+            title = "초안은 검토 후 일부만 반영합니다",
+            body = "AI 제안은 자동 저장·외부 실행을 하지 않습니다.",
+            action = { TextButton(onClick = onOpenDraft) { Text("초안 검토 열기") } },
+        )
         TextButton(onClick = onDelete, modifier = Modifier.testTag("delete_trip")) { Text("이 여행 삭제") }
     }
 }
 
 @Composable
-private fun SummaryMetric(label: String, value: String) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-    Text(label, style = MaterialTheme.typography.titleMedium)
-    Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+private fun SummaryMetric(label: String, value: String) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    Text(label, style = MaterialTheme.typography.bodyLarge)
+    Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
 }
 
 @Composable
-private fun ItinerarySection(itinerary: List<ItineraryItemEntity>, onAdd: () -> Unit, onEdit: (ItineraryItemEntity) -> Unit, onDelete: (String) -> Unit, onSource: (ItineraryItemEntity) -> Unit) {
+private fun ItinerarySection(
+    trip: TripEntity,
+    itinerary: List<ItineraryItemEntity>,
+    selectedDate: String?,
+    onDateSelected: (String) -> Unit,
+    onAdd: (String) -> Unit,
+    onEdit: (ItineraryItemEntity) -> Unit,
+    onDelete: (String) -> Unit,
+    onSource: (ItineraryItemEntity) -> Unit,
+) {
+    val dates = tripDates(trip)
+    val visibleDate = selectedDate?.takeIf { it in dates } ?: dates.firstOrNull().orEmpty()
+    val dayItems = itinerary.filter { it.date == visibleDate }
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("일자별 일정", style = MaterialTheme.typography.headlineSmall)
-            OutlinedButton(onClick = onAdd, modifier = Modifier.testTag("add_itinerary")) { Text("일정 추가") }
+            Column {
+                Text("일정", style = MaterialTheme.typography.headlineSmall)
+                Text("선택한 날짜의 시간 흐름을 직접 기록합니다.", style = MaterialTheme.typography.bodySmall)
+            }
+            OutlinedButton(onClick = { onAdd(visibleDate.ifBlank { trip.startDate }) }, modifier = Modifier.testTag("add_itinerary")) { Text("일정 추가") }
         }
-        if (itinerary.isEmpty()) EmptyState("아직 일정이 없습니다", "여행 기간 안에서 직접 추가해 보세요.", R.drawable.trippilot_empty_itinerary)
-        else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(itinerary, key = { it.id }) { item ->
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("${item.date} · ${formatMinute(item.startMinute)}", style = MaterialTheme.typography.labelLarge)
-                        Text(item.title, style = MaterialTheme.typography.titleMedium)
-                        if (item.location.isNotBlank()) Text(item.location, style = MaterialTheme.typography.bodyMedium)
-                        Row { TextButton(onClick = { onEdit(item) }) { Text("수정") }; TextButton(onClick = { onSource(item) }, modifier = Modifier.testTag("add_source_itinerary")) { Text("출처") }; TextButton(onClick = { onDelete(item.id) }) { Text("삭제") } }
+        Surface(
+            modifier = Modifier.fillMaxWidth().testTag("itinerary_date_selector"),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = MaterialTheme.shapes.large,
+        ) {
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                dates.forEachIndexed { index, date ->
+                    val selected = date == visibleDate
+                    if (selected) {
+                        Button(onClick = { onDateSelected(date) }, modifier = Modifier.testTag("itinerary_date_$date")) {
+                            Text("DAY ${index + 1}\\n${date.takeLast(5)}")
+                        }
+                    } else {
+                        OutlinedButton(onClick = { onDateSelected(date) }, modifier = Modifier.testTag("itinerary_date_$date")) {
+                            Text("DAY ${index + 1}\\n${date.takeLast(5)}")
+                        }
+                    }
+                }
+            }
+        }
+        BriefingPanel(
+            kind = "status",
+            eyebrow = "DAY ${(dates.indexOf(visibleDate) + 1).coerceAtLeast(1)}",
+            title = if (dayItems.isEmpty()) "아직 이 날의 일정이 없습니다" else "${dayItems.size}개 일정이 있습니다",
+            body = if (dayItems.isEmpty()) "시간과 장소를 직접 추가하면 이 날의 타임라인에 표시합니다." else "하루 종일 일정은 시간 일정 뒤에 표시합니다.",
+        )
+        if (dayItems.isEmpty()) EmptyState("아직 일정이 없습니다", "선택한 날짜에 첫 일정을 직접 추가해 보세요.", R.drawable.trippilot_empty_itinerary)
+        // Keep the header pinned and give the timeline a definite viewport.  Without
+        // the weight a nested LazyColumn can be measured inconsistently after process
+        // recreation on compact API 26 devices.
+        else LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            items(dayItems, key = { it.id }) { item ->
+                TimelineEntry(item, onEdit, onDelete, onSource)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimelineEntry(
+    item: ItineraryItemEntity,
+    onEdit: (ItineraryItemEntity) -> Unit,
+    onDelete: (String) -> Unit,
+    onSource: (ItineraryItemEntity) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().testTag("timeline_entry_${item.id}"),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.width(64.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(formatMinute(item.startMinute), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text(if (item.allDay) "하루 종일" else "시간 일정", style = MaterialTheme.typography.bodySmall)
+        }
+        Surface(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = MaterialTheme.shapes.large,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(item.title, style = MaterialTheme.typography.titleMedium)
+                if (item.location.isNotBlank()) Text(item.location, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.bodySmall)
+                Text("출처는 직접 연결한 링크만 표시합니다.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row {
+                    TextButton(onClick = { onEdit(item) }) { Text("수정") }
+                    TextButton(onClick = { onSource(item) }, modifier = Modifier.testTag("add_source_itinerary")) { Text("출처") }
+                    TextButton(onClick = { onDelete(item.id) }) { Text("삭제") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReadinessSection(
+    scope: TravelScope,
+    preparation: List<PreparationItemEntity>,
+    packing: List<PackingItemEntity>,
+    onAddPreparation: () -> Unit,
+    onAddPacking: () -> Unit,
+    onApplyOptionalPack: (ChecklistGroup) -> Unit,
+    onTogglePreparation: (PreparationItemEntity) -> Unit,
+    onSkipPreparation: (String) -> Unit,
+    onTogglePacking: (PackingItemEntity) -> Unit,
+    onDeletePreparation: (String) -> Unit,
+    onDeletePacking: (String) -> Unit,
+) {
+    val preparationGroups = preparation.groupBy {
+        ReadinessTemplateCatalog.displayMetadata(ChecklistType.PREPARATION, it.templateId, it.title).group
+    }
+    val packingGroups = packing.groupBy {
+        ReadinessTemplateCatalog.displayMetadata(ChecklistType.PACKING, it.templateId, it.title).group
+    }
+    val optionalGroups = ReadinessTemplateCatalog.optionalGroups(scope)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+            .testTag("readiness_screen"),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Text("준비", style = MaterialTheme.typography.headlineSmall)
+        Text("기본 항목은 필요한 것만 추가하고, 직접 적은 항목은 그대로 둡니다.", style = MaterialTheme.typography.bodyMedium)
+        BriefingPanel(
+            kind = "next_action",
+            eyebrow = "준비 현황",
+            title = "준비 ${preparationRate(preparation)}% · 짐 ${packingRate(packing)}%",
+            body = "각 항목의 짧은 확인 이유를 보고 완료, 건너뜀, 직접 추가를 선택하세요.",
+        )
+        if (optionalGroups.isNotEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().testTag("readiness_optional_packs"),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("선택 팩", style = MaterialTheme.typography.titleMedium)
+                    Text("필요한 그룹만 추가합니다. 귀국 후 항목도 자동으로 추가하지 않습니다.", style = MaterialTheme.typography.bodySmall)
+                    optionalGroups.forEach { group ->
+                        TextButton(
+                            onClick = { onApplyOptionalPack(group) },
+                            modifier = Modifier.testTag("add_optional_pack_${group.name.lowercase()}"),
+                        ) {
+                            Text("${group.label} 팩 추가")
+                        }
+                    }
+                }
+            }
+        }
+        Text("준비할 일 · ${preparationRate(preparation)}%", style = MaterialTheme.typography.titleMedium)
+        if (preparationGroups.isEmpty()) {
+            EmptyState("준비할 일이 없습니다", "직접 추가하거나 기본 준비 팩을 다시 적용해 보세요.", R.drawable.trippilot_empty_itinerary)
+        } else {
+            readinessGroupOrder(preparationGroups.keys).forEach { group ->
+                val items = preparationGroups[group].orEmpty()
+                ChecklistGroupSection(
+                    group = group,
+                    itemCount = items.size,
+                    addLabel = "직접 추가",
+                    addTag = if (group == preparationGroups.keys.first()) "add_preparation" else null,
+                    onAdd = onAddPreparation,
+                ) {
+                    items.forEach { item ->
+                        val metadata = ReadinessTemplateCatalog.displayMetadata(ChecklistType.PREPARATION, item.templateId, item.title)
+                        ChecklistRow(
+                            title = item.title,
+                            group = metadata.group.label,
+                            detail = metadata.hint,
+                            state = if (item.status == PreparationStatus.SKIPPED) "건너뜀" else originLabel(item.origin),
+                            checked = item.status == PreparationStatus.DONE,
+                            onChecked = { onTogglePreparation(item) },
+                            onSkip = { onSkipPreparation(item.id) },
+                            onDelete = { onDeletePreparation(item.id) },
+                        )
+                    }
+                }
+            }
+        }
+        Text("챙길 물건 · ${packingRate(packing)}%", style = MaterialTheme.typography.titleMedium)
+        if (packingGroups.isEmpty()) {
+            EmptyState("챙길 물건이 없습니다", "가방에 넣을 물건을 직접 추가해 보세요.", R.drawable.trippilot_empty_itinerary)
+        } else {
+            readinessGroupOrder(packingGroups.keys).forEach { group ->
+                val items = packingGroups[group].orEmpty()
+                ChecklistGroupSection(
+                    group = group,
+                    itemCount = items.size,
+                    addLabel = "직접 추가",
+                    addTag = if (group == packingGroups.keys.first()) "add_packing" else null,
+                    onAdd = onAddPacking,
+                ) {
+                    items.forEach { item ->
+                        val metadata = ReadinessTemplateCatalog.displayMetadata(ChecklistType.PACKING, item.templateId, item.title)
+                        ChecklistRow(
+                            title = item.title,
+                            group = metadata.group.label,
+                            detail = metadata.hint,
+                            state = "${item.quantity}개 · ${originLabel(item.origin)}",
+                            checked = item.isPacked,
+                            onChecked = { onTogglePacking(item) },
+                            onSkip = null,
+                            onDelete = { onDeletePacking(item.id) },
+                        )
+                    }
+                }
+            }
+        }
+        SurfaceNotice("알림은 직접 켜야 합니다", "미완료 항목 알림은 로컬 opt-in 기능입니다. 실제 권한 요청은 별도로 확인한 뒤에만 진행합니다.") {}
+    }
+}
+
+@Composable
+private fun ChecklistGroupSection(
+    group: ChecklistGroup,
+    itemCount: Int,
+    addLabel: String,
+    addTag: String?,
+    onAdd: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("checklist_group_${group.name.lowercase()}"),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(group.label, style = MaterialTheme.typography.titleMedium)
+                    Text("${itemCount}개 항목", style = MaterialTheme.typography.bodySmall)
+                }
+                TextButton(onClick = onAdd, modifier = if (addTag == null) Modifier else Modifier.testTag(addTag)) { Text(addLabel) }
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ChecklistRow(
+    title: String,
+    group: String,
+    detail: String,
+    state: String,
+    checked: Boolean,
+    onChecked: () -> Unit,
+    onSkip: (() -> Unit)?,
+    onDelete: () -> Unit,
+) = Row(
+    Modifier
+        .fillMaxWidth()
+        .semantics { contentDescription = "$title, $group, $detail, $state, ${if (checked) "완료" else "미완료"}" },
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    Checkbox(checked = checked, onCheckedChange = { onChecked() })
+    Spacer(Modifier.width(6.dp))
+    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        Text(detail, style = MaterialTheme.typography.bodySmall)
+        Text(state, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    onSkip?.let { TextButton(onClick = it) { Text("건너뜀") } }
+    TextButton(onClick = onDelete) { Text("삭제") }
+}
+
+@Composable
+private fun ReservationSection(reservations: List<ReservationEntity>, pendingShares: List<String>, onAdd: () -> Unit, onEdit: (ReservationEntity) -> Unit, onSource: (ReservationEntity) -> Unit, onDelete: (String) -> Unit, onDiscardShare: (Int) -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text("여행 서류", style = MaterialTheme.typography.headlineSmall)
+                Text("직접 확인한 예약의 확인번호와 출처를 보관합니다.", style = MaterialTheme.typography.bodySmall)
+            }
+            OutlinedButton(onClick = onAdd, modifier = Modifier.testTag("add_reservation")) { Text("예약 추가") }
+        }
+        if (reservations.isEmpty()) {
+            BriefingPanel(
+                kind = "status",
+                eyebrow = "예약",
+                title = "아직 보관한 예약이 없습니다",
+                body = "예약처, 확인번호, 시간, 위치, 링크는 직접 확인한 뒤 직접 기록합니다.",
+            )
+        }
+        reservations.forEach { reservation ->
+            ReservationDocumentRow(reservation, onEdit, onSource, onDelete)
+        }
+        if (pendingShares.isNotEmpty()) {
+            HorizontalDivider()
+            Text("임시 예약 텍스트", style = MaterialTheme.typography.titleMedium)
+            Text("24시간 뒤 자동 삭제됩니다. 분석·예약 생성은 하지 않습니다.", style = MaterialTheme.typography.bodySmall)
+            pendingShares.forEachIndexed { index, shared ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = MaterialTheme.shapes.large,
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(shared, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        TextButton(onClick = { onDiscardShare(index) }) { Text("보관 취소") }
                     }
                 }
             }
@@ -298,54 +979,65 @@ private fun ItinerarySection(itinerary: List<ItineraryItemEntity>, onAdd: () -> 
 }
 
 @Composable
-private fun ReadinessSection(preparation: List<PreparationItemEntity>, packing: List<PackingItemEntity>, onAddPreparation: () -> Unit, onAddPacking: () -> Unit, onTogglePreparation: (PreparationItemEntity) -> Unit, onSkipPreparation: (String) -> Unit, onTogglePacking: (PackingItemEntity) -> Unit, onDeletePreparation: (String) -> Unit, onDeletePacking: (String) -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("준비와 짐", style = MaterialTheme.typography.headlineSmall)
-        Text("준비 ${preparationRate(preparation)}% · 짐 ${packingRate(packing)}%", style = MaterialTheme.typography.titleMedium)
-        ChecklistHeader("준비할 일", onAddPreparation)
-        if (preparation.isEmpty()) Text("준비 항목이 없습니다.")
-        preparation.forEach { ChecklistRow(it.title, originLabel(it.origin), it.status == PreparationStatus.DONE, { onTogglePreparation(it) }, { onSkipPreparation(it.id) }) { onDeletePreparation(it.id) } }
-        HorizontalDivider()
-        ChecklistHeader("챙길 물건", onAddPacking)
-        if (packing.isEmpty()) Text("짐 항목이 없습니다.")
-        packing.forEach { ChecklistRow(it.title, "${it.quantity}개 · ${originLabel(it.origin)}", it.isPacked, { onTogglePacking(it) }, null) { onDeletePacking(it.id) } }
-        SurfaceNotice("알림은 아직 보내지 않아요", "D-7부터 D-1까지 하루 한 번, 미완료 항목이 있을 때만 알리는 규칙은 로컬에서 준비 중입니다. 실제 알림 권한 요청은 Phase 5에서 별도로 승인받습니다.") {}
+private fun ReservationDocumentRow(
+    reservation: ReservationEntity,
+    onEdit: (ReservationEntity) -> Unit,
+    onSource: (ReservationEntity) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("reservation_document_${reservation.id}"),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("${reservation.type} · ${reservation.status}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text(reservation.provider, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("확인번호 ${reservation.confirmationCode}", style = MaterialTheme.typography.bodyLarge)
+            val detail = listOfNotNull(
+                reservation.dateTime?.takeIf(String::isNotBlank),
+                reservation.location.takeIf(String::isNotBlank),
+            ).joinToString(" · ")
+            if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodyMedium)
+            reservation.url?.let {
+                Text("연결 링크", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            Row {
+                TextButton(onClick = { onEdit(reservation) }) { Text("수정") }
+                TextButton(onClick = { onSource(reservation) }) { Text("출처 추가") }
+                TextButton(onClick = { onDelete(reservation.id) }) { Text("삭제") }
+            }
+        }
     }
 }
 
 @Composable
-private fun ChecklistHeader(title: String, onAdd: () -> Unit) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-    Text(title, style = MaterialTheme.typography.titleLarge); TextButton(onClick = onAdd, modifier = Modifier.testTag(if (title == "준비할 일") "add_preparation" else "add_packing")) { Text("직접 추가") }
-}
-
-@Composable
-private fun ChecklistRow(title: String, detail: String, checked: Boolean, onChecked: () -> Unit, onSkip: (() -> Unit)?, onDelete: () -> Unit) = Row(Modifier.fillMaxWidth().semantics { contentDescription = "$title, $detail" }, verticalAlignment = Alignment.CenterVertically) {
-    Checkbox(checked, { onChecked() }); Spacer(Modifier.width(4.dp)); Column(Modifier.weight(1f)) { Text(title); Text(detail, style = MaterialTheme.typography.bodySmall) }; onSkip?.let { TextButton(onClick = it) { Text("건너뜀") } }; TextButton(onClick = onDelete) { Text("삭제") }
-}
-
-@Composable
-private fun ReservationSection(reservations: List<ReservationEntity>, pendingShares: List<String>, onAdd: () -> Unit, onEdit: (ReservationEntity) -> Unit, onSource: (ReservationEntity) -> Unit, onDelete: (String) -> Unit, onDiscardShare: (Int) -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("예약", style = MaterialTheme.typography.headlineSmall); OutlinedButton(onClick = onAdd, modifier = Modifier.testTag("add_reservation")) { Text("예약 추가") }
-        }
-        if (reservations.isEmpty()) Text("예약은 직접 입력해야 저장됩니다.")
-        reservations.forEach { reservation ->
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(reservation.provider, style = MaterialTheme.typography.titleMedium); Text("${reservation.type} · ${reservation.status}", style = MaterialTheme.typography.bodySmall); Text("확인번호 ${reservation.confirmationCode}")
-                    reservation.dateTime?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                    if (reservation.location.isNotBlank()) Text(reservation.location, style = MaterialTheme.typography.bodySmall)
-                    reservation.url?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    Row { TextButton(onClick = { onEdit(reservation) }) { Text("수정") }; TextButton(onClick = { onSource(reservation) }) { Text("출처 추가") }; TextButton(onClick = { onDelete(reservation.id) }) { Text("삭제") } }
-                }
+private fun DocumentRow(
+    title: String,
+    detail: String,
+    supporting: String,
+    onOpen: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("document_row"),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("여행 서류", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(detail, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(supporting, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
-        }
-        if (pendingShares.isNotEmpty()) {
-            HorizontalDivider(); Text("임시 예약 텍스트", style = MaterialTheme.typography.titleMedium); Text("24시간 뒤 자동 삭제됩니다. 분석·예약 생성은 하지 않습니다.", style = MaterialTheme.typography.bodySmall)
-            pendingShares.forEachIndexed { index, shared -> Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-                Column(Modifier.padding(12.dp)) { Text(shared, maxLines = 3, overflow = TextOverflow.Ellipsis); TextButton(onClick = { onDiscardShare(index) }) { Text("보관 취소") } }
-            } }
+            TextButton(onClick = onOpen) { Text("열기") }
         }
     }
 }
@@ -353,22 +1045,43 @@ private fun ReservationSection(reservations: List<ReservationEntity>, pendingSha
 @Composable
 private fun SourcesSection(sources: List<SourceEvidenceEntity>, onEdit: (SourceEvidenceEntity) -> Unit, onRecheck: (SourceEvidenceEntity) -> Unit, onDelete: (String) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("수동 출처", style = MaterialTheme.typography.headlineSmall)
-        Text("일정 또는 예약 화면에서 URL을 직접 추가할 수 있습니다. 앱은 링크를 열거나 검사하지 않습니다.")
+        Text("출처", style = MaterialTheme.typography.headlineSmall)
+        Text("일정 또는 예약에 직접 연결한 링크만 보관합니다. 앱은 링크를 자동으로 열거나 검사하지 않습니다.")
         if (sources.isEmpty()) EmptyState("아직 출처가 없습니다", "일정이나 예약에 연결한 출처가 여기 모입니다.", R.drawable.trippilot_empty_itinerary)
-        sources.forEach { source -> Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(source.title, style = MaterialTheme.typography.titleMedium); Text(source.url, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text("마지막 확인: ${source.lastCheckedAtEpochMs?.let { "기록됨" } ?: "없음"}", style = MaterialTheme.typography.bodySmall)
-                Row { TextButton(onClick = { onEdit(source) }) { Text("수정") }; TextButton(onClick = { onRecheck(source) }) { Text("재확인 기록") }; TextButton(onClick = { onDelete(source.id) }) { Text("삭제") } }
+        sources.forEach { source ->
+            Surface(
+                modifier = Modifier.fillMaxWidth().testTag("source_row_${source.id}"),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(source.title, style = MaterialTheme.typography.titleMedium)
+                    Text(source.url, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text("마지막 재확인: ${source.lastCheckedAtEpochMs?.let { "기록됨" } ?: "아직 없음"}", style = MaterialTheme.typography.bodySmall)
+                    Row {
+                        TextButton(onClick = { onEdit(source) }) { Text("수정") }
+                        TextButton(onClick = { onRecheck(source) }) { Text("재확인 기록") }
+                        TextButton(onClick = { onDelete(source.id) }) { Text("삭제") }
+                    }
+                }
             }
-        } }
+        }
     }
 }
 
 @Composable
-private fun SurfaceNotice(title: String, body: String, content: @Composable () -> Unit) = Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(title, style = MaterialTheme.typography.titleMedium); Text(body, style = MaterialTheme.typography.bodyMedium); content() }
+private fun SurfaceNotice(title: String, body: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) = Surface(
+    modifier = modifier.fillMaxWidth(),
+    color = MaterialTheme.colorScheme.secondaryContainer,
+    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    shape = MaterialTheme.shapes.large,
+) {
+    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(body, style = MaterialTheme.typography.bodyMedium)
+        content()
+    }
 }
 
 @Composable
@@ -378,61 +1091,187 @@ private fun TripEditorDialog(title: String, confirmLabel: String, onDismiss: () 
     var startDate by remember(initial) { mutableStateOf(initial?.startDate ?: LocalDate.now().toString()) }
     var endDate by remember(initial) { mutableStateOf(initial?.endDate ?: LocalDate.now().plusDays(2).toString()) }
     var scope by remember(initial) { mutableStateOf(initial?.scope ?: TravelScope.AUTO) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(tripTitle, { tripTitle = it }, label = { Text("여행 제목") }, modifier = Modifier.fillMaxWidth().testTag("trip_title_input"))
-        OutlinedTextField(destination, { destination = it }, label = { Text("목적지") }, modifier = Modifier.fillMaxWidth().testTag("trip_destination_input"))
-        OutlinedTextField(startDate, { startDate = it }, label = { Text("시작일 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(endDate, { endDate = it }, label = { Text("종료일 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
-        Text("여행 범위", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { TravelScope.entries.forEach { candidate -> if (candidate == scope) Button(onClick = { scope = candidate }) { Text(scopeLabel(candidate)) } else OutlinedButton(onClick = { scope = candidate }) { Text(scopeLabel(candidate)) } } }
-    } }, confirmButton = { Button(onClick = { onConfirm(tripTitle, destination, startDate, endDate, scope) }, modifier = Modifier.testTag("confirm_trip")) { Text(confirmLabel) } }, dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } })
+    val canConfirm = tripTitle.isNotBlank() && destination.isNotBlank() && isIsoDate(startDate) && isIsoDate(endDate) && startDate <= endDate
+    TripFormSheet(
+        title = title,
+        confirmLabel = confirmLabel,
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(tripTitle, destination, startDate, endDate, scope) },
+        confirmEnabled = canConfirm,
+        confirmTag = "confirm_trip",
+    ) { contentModifier ->
+        Column(contentModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(tripTitle, { tripTitle = it }, label = { Text("여행 제목") }, modifier = Modifier.fillMaxWidth().testTag("trip_title_input"))
+            OutlinedTextField(destination, { destination = it }, label = { Text("목적지") }, modifier = Modifier.fillMaxWidth().testTag("trip_destination_input"))
+            OutlinedTextField(startDate, { startDate = it }, label = { Text("시작일 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth().testTag("trip_start_input"))
+            OutlinedTextField(endDate, { endDate = it }, label = { Text("종료일 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth().testTag("trip_end_input"))
+            if (!canConfirm) Text("제목, 목적지, 올바른 날짜 범위를 확인하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            Text("여행 범위", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TravelScope.entries.forEach { candidate ->
+                    if (candidate == scope) Button(onClick = { scope = candidate }) { Text(scopeLabel(candidate)) }
+                    else OutlinedButton(onClick = { scope = candidate }) { Text(scopeLabel(candidate)) }
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun ItineraryDialog(trip: TripEntity, onDismiss: () -> Unit, initial: ItineraryItemEntity? = null, onConfirm: (String, String, String, String) -> Unit) {
-    var title by remember(initial) { mutableStateOf(initial?.title.orEmpty()) }; var date by remember(initial) { mutableStateOf(initial?.date ?: trip.startDate) }; var time by remember(initial) { mutableStateOf(initial?.startMinute?.let(::formatMinute).orEmpty()) }; var location by remember(initial) { mutableStateOf(initial?.location.orEmpty()) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(if (initial == null) "일정 추가" else "일정 수정") }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(title, { title = it }, label = { Text("일정 제목") }, modifier = Modifier.fillMaxWidth().testTag("itinerary_title_input")); OutlinedTextField(date, { date = it }, label = { Text("날짜 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(time, { time = it }, label = { Text("시각 (HH:mm, 선택)") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(location, { location = it }, label = { Text("장소 (선택)") }, modifier = Modifier.fillMaxWidth())
-    } }, confirmButton = { Button(onClick = { onConfirm(title, date, time, location) }) { Text("추가") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } })
+private fun ItineraryDialog(
+    trip: TripEntity,
+    onDismiss: () -> Unit,
+    initial: ItineraryItemEntity? = null,
+    initialDate: String = trip.startDate,
+    onConfirm: (String, String, String, String, String) -> Unit,
+) {
+    var title by remember(initial) { mutableStateOf(initial?.title.orEmpty()) }
+    var date by remember(initial, initialDate) { mutableStateOf(initial?.date ?: initialDate) }
+    var time by remember(initial) { mutableStateOf(initial?.startMinute?.let(::formatMinute).orEmpty()) }
+    var location by remember(initial) { mutableStateOf(initial?.location.orEmpty()) }
+    var notes by remember(initial) { mutableStateOf(initial?.notes.orEmpty()) }
+    val canConfirm = title.isNotBlank() && isIsoDate(date) && date in tripDates(trip)
+    TripFormSheet(
+        title = if (initial == null) "일정 추가" else "일정 수정",
+        confirmLabel = if (initial == null) "추가" else "저장",
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(title, date, time, location, notes) },
+        confirmEnabled = canConfirm,
+    ) { contentModifier ->
+        Column(contentModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(title, { title = it }, label = { Text("일정 제목") }, modifier = Modifier.fillMaxWidth().testTag("itinerary_title_input"))
+            OutlinedTextField(date, { date = it }, label = { Text("날짜 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(time, { time = it }, label = { Text("시각 (HH:mm, 선택)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(location, { location = it }, label = { Text("장소 (선택)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(notes, { notes = it }, label = { Text("개인 메모·주의사항 (선택)") }, modifier = Modifier.fillMaxWidth().testTag("itinerary_notes_input"))
+            if (!canConfirm) Text("제목과 여행 기간 안의 날짜를 확인하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
 }
 
 @Composable
 private fun ReservationDialog(onDismiss: () -> Unit, initial: ReservationEntity? = null, onConfirm: (String, String, String, String, String, String, ReservationStatus) -> Unit) {
     var type by remember(initial) { mutableStateOf(initial?.type ?: "OTHER") }; var provider by remember(initial) { mutableStateOf(initial?.provider.orEmpty()) }; var code by remember(initial) { mutableStateOf(initial?.confirmationCode.orEmpty()) }; var url by remember(initial) { mutableStateOf(initial?.url.orEmpty()) }; var time by remember(initial) { mutableStateOf(initial?.dateTime.orEmpty()) }; var location by remember(initial) { mutableStateOf(initial?.location.orEmpty()) }; var status by remember(initial) { mutableStateOf(initial?.status ?: ReservationStatus.DRAFT) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("예약 추가") }, text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(type, { type = it }, label = { Text("예약 유형 (예: FLIGHT)") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(provider, { provider = it }, label = { Text("예약처") }, modifier = Modifier.fillMaxWidth().testTag("reservation_provider_input")); OutlinedTextField(code, { code = it }, label = { Text("확인번호") }, modifier = Modifier.fillMaxWidth().testTag("reservation_code_input")); OutlinedTextField(time, { time = it }, label = { Text("시간 (선택)") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(location, { location = it }, label = { Text("장소 (선택)") }, modifier = Modifier.fillMaxWidth()); OutlinedTextField(url, { url = it }, label = { Text("예약 URL (선택)") }, modifier = Modifier.fillMaxWidth()); Text("상태", style = MaterialTheme.typography.labelLarge); Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { ReservationStatus.entries.forEach { candidate -> if (candidate == status) Button(onClick = { status = candidate }) { Text(candidate.name) } else OutlinedButton(onClick = { status = candidate }) { Text(candidate.name) } } }
-    } }, confirmButton = { Button(onClick = { onConfirm(type, provider, code, url, time, location, status) }) { Text("저장") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } })
+    val canConfirm = provider.isNotBlank() && code.isNotBlank() && (url.isBlank() || url.startsWith("http://") || url.startsWith("https://"))
+    TripFormSheet(
+        title = if (initial == null) "예약 추가" else "예약 수정",
+        confirmLabel = "저장",
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(type, provider, code, url, time, location, status) },
+        confirmEnabled = canConfirm,
+    ) { contentModifier ->
+        Column(contentModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(type, { type = it }, label = { Text("예약 유형 (예: FLIGHT)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(provider, { provider = it }, label = { Text("예약처") }, modifier = Modifier.fillMaxWidth().testTag("reservation_provider_input"))
+            OutlinedTextField(code, { code = it }, label = { Text("확인번호") }, modifier = Modifier.fillMaxWidth().testTag("reservation_code_input"))
+            OutlinedTextField(time, { time = it }, label = { Text("시간 (선택)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(location, { location = it }, label = { Text("장소 (선택)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(url, { url = it }, label = { Text("예약 URL (선택)") }, modifier = Modifier.fillMaxWidth())
+            Text("상태", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                ReservationStatus.entries.forEach { candidate ->
+                    if (candidate == status) Button(onClick = { status = candidate }) { Text(candidate.name) }
+                    else OutlinedButton(onClick = { status = candidate }) { Text(candidate.name) }
+                }
+            }
+            if (!canConfirm) Text("예약처·확인번호와 http/https URL 형식을 확인하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
 }
 
 @Composable
 private fun SourceDialog(ownerTitle: String, onDismiss: () -> Unit, initial: SourceEvidenceEntity? = null, onConfirm: (String, String) -> Unit) {
     var title by remember(initial) { mutableStateOf(initial?.title.orEmpty()) }; var url by remember(initial) { mutableStateOf(initial?.url.orEmpty()) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("$ownerTitle 출처 추가") }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(title, { title = it }, label = { Text("출처 제목") }, modifier = Modifier.fillMaxWidth().testTag("source_title_input")); OutlinedTextField(url, { url = it }, label = { Text("https URL") }, modifier = Modifier.fillMaxWidth().testTag("source_url_input")) } }, confirmButton = { Button(onClick = { onConfirm(title, url) }) { Text("연결") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } })
+    val canConfirm = title.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
+    TripFormSheet(
+        title = "$ownerTitle 출처 추가",
+        confirmLabel = "연결",
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(title, url) },
+        confirmEnabled = canConfirm,
+    ) { contentModifier ->
+        Column(contentModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(title, { title = it }, label = { Text("출처 제목") }, modifier = Modifier.fillMaxWidth().testTag("source_title_input"))
+            OutlinedTextField(url, { url = it }, label = { Text("https URL") }, modifier = Modifier.fillMaxWidth().testTag("source_url_input"))
+            if (!canConfirm) Text("출처 제목과 http/https URL을 입력하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
 }
 
 @Composable
 private fun RecheckDialog(source: SourceEvidenceEntity, onDismiss: () -> Unit, onConfirm: (String, RecheckResult) -> Unit) {
     var date by remember { mutableStateOf(LocalDate.now().toString()) }; var result by remember { mutableStateOf(RecheckResult.UNCHANGED) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("${source.title} 재확인") }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { OutlinedTextField(date, { date = it }, label = { Text("확인일 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth()); RecheckResult.entries.forEach { candidate -> if (candidate == result) Button(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth()) { Text(recheckLabel(candidate)) } else OutlinedButton(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth()) { Text(recheckLabel(candidate)) } } } }, confirmButton = { Button(onClick = { onConfirm(date, result) }) { Text("기록") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } })
+    TripFormSheet(
+        title = "${source.title} 재확인",
+        confirmLabel = "기록",
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(date, result) },
+        confirmEnabled = isIsoDate(date),
+    ) { contentModifier ->
+        Column(contentModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(date, { date = it }, label = { Text("확인일 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+            RecheckResult.entries.forEach { candidate ->
+                if (candidate == result) Button(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth()) { Text(recheckLabel(candidate)) }
+                else OutlinedButton(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth()) { Text(recheckLabel(candidate)) }
+            }
+        }
+    }
 }
 
 @Composable
 private fun SimpleTextDialog(title: String, label: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var value by remember { mutableStateOf("") }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { OutlinedTextField(value, { value = it }, label = { Text(label) }, modifier = Modifier.fillMaxWidth().testTag("simple_text_input")) }, confirmButton = { Button(onClick = { onConfirm(value) }) { Text("추가") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } })
+    TripFormSheet(title, "추가", { onConfirm(value) }, onDismiss, confirmEnabled = value.isNotBlank()) { contentModifier ->
+        OutlinedTextField(value, { value = it }, label = { Text(label) }, modifier = contentModifier.testTag("simple_text_input"))
+    }
 }
 
 @Composable
 private fun PackingDialog(onDismiss: () -> Unit, onConfirm: (String, Int) -> Unit) {
     var title by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("1") }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("짐 항목 추가") }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    TripFormSheet("짐 항목 추가", "추가", { onConfirm(title, quantity.toIntOrNull() ?: 0) }, onDismiss, confirmEnabled = title.isNotBlank() && (quantity.toIntOrNull() ?: 0) >= 1) { contentModifier ->
+        Column(contentModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(title, { title = it }, label = { Text("챙길 물건") }, modifier = Modifier.fillMaxWidth().testTag("packing_title_input"))
         OutlinedTextField(quantity, { quantity = it }, label = { Text("수량 (1 이상)") }, modifier = Modifier.fillMaxWidth())
-    } }, confirmButton = { Button(onClick = { onConfirm(title, quantity.toIntOrNull() ?: 0) }) { Text("추가") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } })
+        }
+    }
 }
 
 private fun tripDayCount(start: String, end: String): Int = runCatching { (ChronoUnit.DAYS.between(LocalDate.parse(start), LocalDate.parse(end)) + 1).toInt().coerceAtLeast(1) }.getOrDefault(1)
+private fun defaultJourneyStageId(trip: TripEntity): String =
+    JourneyStageCalculator.defaultSelectedId(trip.startDate, trip.endDate)
+
+private fun journeyStages(
+    trip: TripEntity,
+    itinerary: List<ItineraryItemEntity>,
+    preparation: List<PreparationItemEntity>,
+    packing: List<PackingItemEntity>,
+): List<JourneyStage> = JourneyStageCalculator.calculate(
+    startDate = trip.startDate,
+    endDate = trip.endDate,
+    itineraryCountByDate = itinerary.groupingBy { it.date }.eachCount(),
+    readinessTotal = preparation.size + packing.size,
+    readinessPending = preparation.count { it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED } +
+        packing.count { !it.isPacked },
+)
+
+private fun stageSummary(stages: List<JourneyStage>, selectedStageId: String): String =
+    JourneyStageCalculator.summary(stages, selectedStageId)
+
+private fun tripDates(trip: TripEntity): List<String> = runCatching {
+    val end = LocalDate.parse(trip.endDate)
+    generateSequence(LocalDate.parse(trip.startDate)) { date -> date.plusDays(1).takeIf { !it.isAfter(end) } }
+        .map(LocalDate::toString)
+        .toList()
+}.getOrDefault(emptyList())
+
+private fun isIsoDate(value: String): Boolean =
+    value.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && runCatching { LocalDate.parse(value) }.isSuccess
+
+private fun readinessGroupOrder(groups: Set<ChecklistGroup>): List<ChecklistGroup> =
+    ChecklistGroup.entries.filter(groups::contains)
+
 private fun formatMinute(value: Int?): String = value?.let { "%02d:%02d".format(it / 60, it % 60) } ?: "하루 종일"
 private fun preparationRate(items: List<PreparationItemEntity>): Int = CompletionPolicy.preparationPercent(items.map { it.status })
 private fun packingRate(items: List<PackingItemEntity>): Int = CompletionPolicy.packingPercent(items.map { it.isPacked })

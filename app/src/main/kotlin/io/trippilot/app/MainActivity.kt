@@ -13,10 +13,16 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.trippilot.app.core.design.TripPilotApp
 import io.trippilot.app.core.design.TripPilotTheme
 import io.trippilot.app.feature.trips.TripViewModel
+import io.trippilot.app.feature.drafts.TripDraftViewModel
+import io.trippilot.app.feature.external.TripExternalViewModel
+import io.trippilot.app.feature.external.TripFileViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val tripViewModel: TripViewModel by viewModels()
+    private val tripDraftViewModel: TripDraftViewModel by viewModels()
+    private val tripExternalViewModel: TripExternalViewModel by viewModels()
+    private val tripFileViewModel: TripFileViewModel by viewModels()
     private var incomingShareText by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +31,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TripPilotTheme {
-                TripPilotApp(viewModel = tripViewModel, incomingShareText = incomingShareText)
+                TripPilotApp(
+                    viewModel = tripViewModel,
+                    draftViewModel = tripDraftViewModel,
+                    externalViewModel = tripExternalViewModel,
+                    fileViewModel = tripFileViewModel,
+                    incomingShareText = incomingShareText,
+                )
             }
         }
     }
@@ -34,6 +46,13 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         incomingShareText = plainTextFromSendIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // This checks only an already pending Device OAuth attempt after a browser return. It
+        // never starts login or replays a travel request when the app comes back to foreground.
+        tripDraftViewModel.refreshCodexAfterBrowserReturn()
     }
 }
 

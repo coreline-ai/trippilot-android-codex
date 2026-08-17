@@ -1,0 +1,626 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "creationInfo": {
+    "created": "2026-08-16T00:00:00Z",
+    "creators": [
+      "Tool: alpine-codex-python-pack-builder-v1"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "urn:uuid:42193cff-314a-5ae3-a1de-81b414cbe78a",
+  "name": "alpine-3.21.3-python3-aarch64-pack",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-001-gdbm",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "51da8e712c448965e5f2f652e9889dc0928ced665d4a4d11207e16adef680f9b"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/gdbm-1.24-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/gdbm@1.24-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "GPL-3.0-or-later",
+      "name": "gdbm",
+      "sourceInfo": "origin=gdbm; aports=cf76e1b436494c60e0c188400007dbf78bbff5f0; upstream=https://www.gnu.org/software/gdbm/",
+      "versionInfo": "1.24-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-002-libbz2",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "49945b5c46f2be9201c900df45ca173e1065adb45366c6ad51709381123daa5f"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libbz2-1.0.8-r6.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libbz2@1.0.8-r6?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "bzip2-1.0.6",
+      "name": "libbz2",
+      "sourceInfo": "origin=bzip2; aports=33283848034c9885d984c8e8697c645c57324938; upstream=https://sourceware.org/bzip2/",
+      "versionInfo": "1.0.8-r6"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-003-libcrypto3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8bbd804ffb897d88abb6b10d7d5fd479aadd6f85f2735242fdbb45a687587ca2"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libcrypto3-3.3.7-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libcrypto3@3.3.7-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "Apache-2.0",
+      "name": "libcrypto3",
+      "sourceInfo": "origin=openssl; aports=8ec72d9972fac0f527a00fd5ee927f88f0895cac; upstream=https://www.openssl.org/",
+      "versionInfo": "3.3.7-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-004-libexpat",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e21971061695684dd6e6bc359f4425bb2d3800fb4a2026b3600d3c761a183777"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libexpat-2.8.2-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libexpat@2.8.2-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "name": "libexpat",
+      "sourceInfo": "origin=expat; aports=4cf4c29d74a7f49b605b2ea434ec2b125c9a1243; upstream=https://libexpat.github.io/",
+      "versionInfo": "2.8.2-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-005-libffi",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "814579137f32e94e54370f2e5d93d992c4148515b426c168e87102d4d6f6ddc6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libffi-3.4.7-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libffi@3.4.7-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "name": "libffi",
+      "sourceInfo": "origin=libffi; aports=22c7b41f717ec56d69c0cc0a183703326fa47414; upstream=https://sourceware.org/libffi/",
+      "versionInfo": "3.4.7-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-006-libgcc",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7cfdc00f102d3b98fe563b31e7a59a7b7ab61850c1751915f34e419e83ef2653"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libgcc-14.2.0-r4.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libgcc@14.2.0-r4?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "GPL-2.0-or-later AND LGPL-2.1-or-later",
+      "name": "libgcc",
+      "sourceInfo": "origin=gcc; aports=1a03a2a9c9e77f1a07d48b6f6805e72c8c63c03f; upstream=https://gcc.gnu.org",
+      "versionInfo": "14.2.0-r4"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-007-libncursesw",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c1a5a3a552ad4d44c94454555f38de71b151dc2d608ea2246d92b3bd845b7f3a"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libncursesw-6.5_p20241006-r3.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libncursesw@6.5_p20241006-r3?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "X11",
+      "name": "libncursesw",
+      "sourceInfo": "origin=ncurses; aports=2cf24c798675a7f7deb2603c350d4adc7b59c8bb; upstream=https://invisible-island.net/ncurses/",
+      "versionInfo": "6.5_p20241006-r3"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-008-libpanelw",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "11e2911f6fa4f3885e2fb7488847d58c4c8e166922b5fe259811a04f21802089"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libpanelw-6.5_p20241006-r3.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libpanelw@6.5_p20241006-r3?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "X11",
+      "name": "libpanelw",
+      "sourceInfo": "origin=ncurses; aports=2cf24c798675a7f7deb2603c350d4adc7b59c8bb; upstream=https://invisible-island.net/ncurses/",
+      "versionInfo": "6.5_p20241006-r3"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-009-libssl3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1c4cc0696d60a7b2bb5f71a296c6ecb3a2927b5057acecdfb2395cca873b5e62"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libssl3-3.3.7-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libssl3@3.3.7-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "Apache-2.0",
+      "name": "libssl3",
+      "sourceInfo": "origin=openssl; aports=8ec72d9972fac0f527a00fd5ee927f88f0895cac; upstream=https://www.openssl.org/",
+      "versionInfo": "3.3.7-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-010-libstdc--",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "93dded5af4e42ca59a2e981ffc5acc59c5d7110cec4adaeb15b84dc224526b63"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/libstdc++-14.2.0-r4.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/libstdc%2B%2B@14.2.0-r4?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "GPL-2.0-or-later AND LGPL-2.1-or-later",
+      "name": "libstdc++",
+      "sourceInfo": "origin=gcc; aports=1a03a2a9c9e77f1a07d48b6f6805e72c8c63c03f; upstream=https://gcc.gnu.org",
+      "versionInfo": "14.2.0-r4"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-011-mpdecimal",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e14866cce8ab46653d2c2ffd679357abfa100fe5259f520509117be19d56cab9"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/mpdecimal-4.0.0-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/mpdecimal@4.0.0-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "BSD-2-Clause",
+      "name": "mpdecimal",
+      "sourceInfo": "origin=mpdecimal; aports=2eb73f6cb661fb3582606482331ad083155f18e8; upstream=https://www.bytereef.org/mpdecimal/index.html",
+      "versionInfo": "4.0.0-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-012-musl",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "721010e6bff908878d9c527428598661be59dde0d9f013f8431d01fd4dd16652"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/musl-1.2.5-r11.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/musl@1.2.5-r11?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT",
+      "name": "musl",
+      "sourceInfo": "origin=musl; aports=21cafa1183cf7501d3f1744994d221c038436e45; upstream=https://musl.libc.org/",
+      "versionInfo": "1.2.5-r11"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-013-ncurses-terminfo-base",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a86fb76ba2ac494ed3a550a5c42d032c486d942966bceae38f6ce95eaa384550"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/ncurses-terminfo-base-6.5_p20241006-r3.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/ncurses-terminfo-base@6.5_p20241006-r3?arch=noarch",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "X11",
+      "name": "ncurses-terminfo-base",
+      "sourceInfo": "origin=ncurses; aports=2cf24c798675a7f7deb2603c350d4adc7b59c8bb; upstream=https://invisible-island.net/ncurses/",
+      "versionInfo": "6.5_p20241006-r3"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-014-pyc",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e01a235b71ea67caff3141707e021697c17445b46f885f0e0ddf81a9c5cf1cc0"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/pyc-3.12.14-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/pyc@3.12.14-r0?arch=noarch",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "PSF-2.0",
+      "name": "pyc",
+      "sourceInfo": "origin=python3; aports=1d63fc4da0e6ddeed22906b0e483e3a519810551; upstream=https://www.python.org/",
+      "versionInfo": "3.12.14-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-015-python3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c0ac987f056f17a3b28c33d319eb9ded7f183b5896c83c37ffb3ce86dc3e75d6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/python3-3.12.14-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/python3@3.12.14-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "PSF-2.0",
+      "name": "python3",
+      "sourceInfo": "origin=python3; aports=1d63fc4da0e6ddeed22906b0e483e3a519810551; upstream=https://www.python.org/",
+      "versionInfo": "3.12.14-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-016-python3-pyc",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0e503bcd0c71f6f69d1f71fcb65b5e902741eebda2cccaf0399b575abbd058d4"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/python3-pyc-3.12.14-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/python3-pyc@3.12.14-r0?arch=noarch",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "PSF-2.0",
+      "name": "python3-pyc",
+      "sourceInfo": "origin=python3; aports=1d63fc4da0e6ddeed22906b0e483e3a519810551; upstream=https://www.python.org/",
+      "versionInfo": "3.12.14-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-017-python3-pycache-pyc0",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c400f68774e5ee5d36b0afa0e7dc3de83be4de574b3a7a08ea5a83efc866afe6"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/python3-pycache-pyc0-3.12.14-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/python3-pycache-pyc0@3.12.14-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "PSF-2.0",
+      "name": "python3-pycache-pyc0",
+      "sourceInfo": "origin=python3; aports=1d63fc4da0e6ddeed22906b0e483e3a519810551; upstream=https://www.python.org/",
+      "versionInfo": "3.12.14-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-018-readline",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7dad49f83ecbcfa00c5c7df044a5566b928ac1995651cfff219e1df1c2b93871"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/readline-8.2.13-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/readline@8.2.13-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "GPL-3.0-or-later",
+      "name": "readline",
+      "sourceInfo": "origin=readline; aports=7dff18068fb2ef6694db4f7bdc447755187e74ab; upstream=https://tiswww.cwru.edu/php/chet/readline/rltop.html",
+      "versionInfo": "8.2.13-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-019-sqlite-libs",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0e4e80c156f65307d0b35c4caf5771fae2a8c3d7f5ffb642a72d13e9c6d3cd14"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/sqlite-libs-3.48.0-r4.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/sqlite-libs@3.48.0-r4?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "blessing",
+      "name": "sqlite-libs",
+      "sourceInfo": "origin=sqlite; aports=ee0eac4d746e3a414cacb3186b3577ccc4342c07; upstream=https://www.sqlite.org/",
+      "versionInfo": "3.48.0-r4"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-020-xz-libs",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "992ee804cb54b0f7067f50ccfab641b253cab8659792be24ca6dd31795d87466"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/xz-libs-5.8.3-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/xz-libs@5.8.3-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "GPL-2.0-or-later AND 0BSD AND Public-Domain AND LGPL-2.1-or-later",
+      "name": "xz-libs",
+      "sourceInfo": "origin=xz; aports=52b5cb3704042b5099c50981c34017a4981e440c; upstream=https://tukaani.org/xz/",
+      "versionInfo": "5.8.3-r0"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-021-zlib",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "89c230ee1c74c389c1607413c223ed7d27ce1b2e964038facbfc54245157101c"
+        }
+      ],
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/zlib-1.3.2-r0.apk",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:apk/alpine/zlib@1.3.2-r0?arch=aarch64",
+          "referenceType": "purl"
+        }
+      ],
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "Zlib",
+      "name": "zlib",
+      "sourceInfo": "origin=zlib; aports=2b38f55109add14f4f99a974c2fdf421b6b9e9e9; upstream=https://zlib.net/",
+      "versionInfo": "1.3.2-r0"
+    }
+  ],
+  "relationships": [
+    {
+      "relatedSpdxElement": "SPDXRef-Package-001-gdbm",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-002-libbz2",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-003-libcrypto3",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-004-libexpat",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-005-libffi",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-006-libgcc",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-007-libncursesw",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-008-libpanelw",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-009-libssl3",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-010-libstdc--",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-011-mpdecimal",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-012-musl",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-013-ncurses-terminfo-base",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-014-pyc",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-015-python3",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-016-python3-pyc",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-017-python3-pycache-pyc0",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-018-readline",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-019-sqlite-libs",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-020-xz-libs",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    },
+    {
+      "relatedSpdxElement": "SPDXRef-Package-021-zlib",
+      "relationshipType": "DESCRIBES",
+      "spdxElementId": "SPDXRef-DOCUMENT"
+    }
+  ],
+  "spdxVersion": "SPDX-2.3"
+}

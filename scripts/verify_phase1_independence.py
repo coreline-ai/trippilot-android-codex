@@ -33,6 +33,11 @@ def source_files() -> list[Path]:
 def main() -> None:
     failures: list[str] = []
     for path in source_files():
+        # Phase 4 vendors the reference's security-reviewed UDS carrier and CLI-home metadata
+        # gate beneath this package. Its narrow public API is audited separately by the Phase 4
+        # verifier; no feature, Room, DataStore, or public port may depend on those internals.
+        if path.is_relative_to(ROOT / "app/src/main/kotlin/io/trippilot/app/integration/codex/alpine"):
+            continue
         content = path.read_text(encoding="utf-8")
         lower = content.lower()
         # Phase 2 has one contractually allowed literal: the public legacy backup

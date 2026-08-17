@@ -14,6 +14,9 @@ interface TripDao {
     @Query("SELECT * FROM trips WHERE id = :tripId")
     fun observeTrip(tripId: String): Flow<TripEntity?>
 
+    @Query("SELECT * FROM trips WHERE id = :tripId")
+    suspend fun tripById(tripId: String): TripEntity?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTrip(entity: TripEntity)
 
@@ -34,6 +37,9 @@ interface TripDao {
 
     @Query("SELECT * FROM itinerary_items WHERE tripId = :tripId ORDER BY date, startMinute, sortOrder")
     fun observeItinerary(tripId: String): Flow<List<ItineraryItemEntity>>
+
+    @Query("SELECT * FROM itinerary_items WHERE tripId = :tripId ORDER BY date, startMinute, sortOrder")
+    suspend fun itineraryForTrip(tripId: String): List<ItineraryItemEntity>
 
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE tripId = :tripId AND (date < :startDate OR date > :endDate)")
     suspend fun itineraryOutsideDateRangeCount(tripId: String, startDate: String, endDate: String): Int
@@ -59,14 +65,45 @@ interface TripDao {
     @Query("DELETE FROM calendar_actions WHERE itineraryId = :itemId")
     suspend fun deleteCalendarActionsForItinerary(itemId: String)
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCalendarAction(entity: CalendarActionEntity)
+
+    @Query("SELECT * FROM calendar_actions WHERE tripId = :tripId ORDER BY itineraryId")
+    fun observeCalendarActions(tripId: String): Flow<List<CalendarActionEntity>>
+
+    @Query("SELECT * FROM calendar_actions WHERE itineraryId = :itineraryId LIMIT 1")
+    suspend fun calendarActionForItinerary(itineraryId: String): CalendarActionEntity?
+
+    @Query("UPDATE calendar_actions SET status = :status, failureReason = :failureReason WHERE itineraryId = :itineraryId")
+    suspend fun updateCalendarAction(
+        itineraryId: String,
+        status: io.trippilot.app.core.model.CalendarActionStatus,
+        failureReason: String?,
+    )
 
     @Query("SELECT COUNT(*) FROM calendar_actions WHERE itineraryId = :itemId")
     suspend fun calendarActionCount(itemId: String): Int
 
+    @Query("SELECT * FROM readiness_reminders WHERE tripId = :tripId LIMIT 1")
+    fun observeReadinessReminder(tripId: String): Flow<ReadinessReminderEntity?>
+
+    @Query("SELECT * FROM readiness_reminders WHERE tripId = :tripId LIMIT 1")
+    suspend fun readinessReminderForTrip(tripId: String): ReadinessReminderEntity?
+
+    @Query("SELECT * FROM readiness_reminders WHERE enabled = 1")
+    suspend fun enabledReadinessReminders(): List<ReadinessReminderEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertReadinessReminder(entity: ReadinessReminderEntity)
+
+    @Query("UPDATE readiness_reminders SET lastNotifiedDate = :date WHERE tripId = :tripId")
+    suspend fun updateReminderLastNotified(tripId: String, date: String?)
+
     @Query("SELECT * FROM preparation_items WHERE tripId = :tripId ORDER BY status, createdAtEpochMs")
     fun observePreparation(tripId: String): Flow<List<PreparationItemEntity>>
+
+    @Query("SELECT * FROM preparation_items WHERE tripId = :tripId")
+    suspend fun preparationForTrip(tripId: String): List<PreparationItemEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertPreparation(entity: PreparationItemEntity)
@@ -83,6 +120,9 @@ interface TripDao {
     @Query("SELECT * FROM packing_items WHERE tripId = :tripId ORDER BY isPacked, createdAtEpochMs")
     fun observePacking(tripId: String): Flow<List<PackingItemEntity>>
 
+    @Query("SELECT * FROM packing_items WHERE tripId = :tripId")
+    suspend fun packingForTrip(tripId: String): List<PackingItemEntity>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertPacking(entity: PackingItemEntity)
 
@@ -97,6 +137,9 @@ interface TripDao {
 
     @Query("SELECT * FROM reservations WHERE tripId = :tripId ORDER BY dateTime, provider")
     fun observeReservations(tripId: String): Flow<List<ReservationEntity>>
+
+    @Query("SELECT * FROM reservations WHERE tripId = :tripId")
+    suspend fun reservationsForTrip(tripId: String): List<ReservationEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertReservation(entity: ReservationEntity)
@@ -131,6 +174,9 @@ interface TripDao {
 
     @Query("SELECT * FROM source_evidence WHERE tripId = :tripId ORDER BY title")
     fun observeSources(tripId: String): Flow<List<SourceEvidenceEntity>>
+
+    @Query("SELECT * FROM source_evidence WHERE ownerType = :ownerType AND ownerId = :ownerId")
+    suspend fun sourcesForOwner(ownerType: io.trippilot.app.core.model.SourceOwnerType, ownerId: String): List<SourceEvidenceEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSource(entity: SourceEvidenceEntity)

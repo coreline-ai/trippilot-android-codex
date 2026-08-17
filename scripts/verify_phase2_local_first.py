@@ -25,7 +25,9 @@ def main() -> None:
     if 'android:mimeType="*/*"' in manifest:
         fail("share intake must not accept all MIME types")
 
-    local_roots = (SOURCE / "core/data", SOURCE / "core/model", SOURCE / "core/design", SOURCE / "feature")
+    # Phase 2 owns only local travel UI/data. Later Phase 3 drafts and Phase 5 external
+    # confirmation UI are deliberately outside this historical local-first audit.
+    local_roots = (SOURCE / "core/data", SOURCE / "core/model", SOURCE / "core/design", SOURCE / "feature/trips", SOURCE / "feature/preparation")
     content = "\n".join(
         path.read_text(encoding="utf-8")
         for root in local_roots

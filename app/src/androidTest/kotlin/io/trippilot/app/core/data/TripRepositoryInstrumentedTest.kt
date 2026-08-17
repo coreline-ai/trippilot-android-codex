@@ -3,6 +3,7 @@ package io.trippilot.app.core.data
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.trippilot.app.core.data.db.TripPilotDatabase
+import io.trippilot.app.core.data.db.PreparationItemEntity
 import io.trippilot.app.core.data.db.PendingReservationShareEntity
 import io.trippilot.app.core.data.db.CalendarActionEntity
 import io.trippilot.app.core.model.CalendarActionStatus
@@ -10,6 +11,17 @@ import io.trippilot.app.core.model.RecheckResult
 import io.trippilot.app.core.model.TravelScope
 import io.trippilot.app.core.model.TripInput
 import io.trippilot.app.core.model.ValidationResult
+import io.trippilot.app.core.model.ItemOrigin
+import io.trippilot.app.core.model.ChecklistGroup
+import io.trippilot.app.core.model.PreparationStatus
+import io.trippilot.app.core.model.ReadinessTemplateCatalog
+import io.trippilot.app.integration.codex.contract.ApprovedDraftSelection
+import io.trippilot.app.integration.codex.contract.ApprovedItineraryItem
+import io.trippilot.app.integration.codex.contract.DraftPackingSuggestion
+import io.trippilot.app.integration.codex.contract.DraftPreparationSuggestion
+import io.trippilot.app.integration.codex.contract.DraftReservation
+import io.trippilot.app.integration.codex.contract.ReservationType
+import io.trippilot.app.integration.codex.contract.SourceCandidate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -121,5 +133,86 @@ class TripRepositoryInstrumentedTest {
         assertEquals(1, repository.observeItinerary(restored.id).first().size)
         assertEquals(1, repository.observeReservations(restored.id).first().size)
         assertEquals(1, repository.observeSources(restored.id).first().size)
+    }
+
+    @Test
+    fun approvedDraftIsAtomicIdempotentAndNeverCreatesCalendarActions() = runBlocking {
+        assertEquals(ValidationResult.Valid, repository.createTrip(TripInput("도쿄", "Tokyo", "2026-10-01", "2026-10-03", "Asia/Tokyo", TravelScope.INTERNATIONAL)))
+        val trip = repository.observeTrips().first().single()
+        val selection = ApprovedDraftSelection(
+            itinerary = listOf(ApprovedItineraryItem("walk", "2026-10-01", "시부야 산책", 600, "Shibuya", "여유 있게 이동")),
+            reservations = listOf(DraftReservation("hotel", ReservationType.HOTEL, "Trip Hotel", "TP-2026", "2026-10-01T15:00", "Shibuya", "https://example.com/hotel")),
+            preparation = listOf(DraftPreparationSuggestion("hours", "운영 시간 재확인", "변동 가능")),
+            packing = listOf(DraftPackingSuggestion("adapter", "충전 어댑터", 1, "충전")),
+            sources = listOf(
+                SourceCandidate("walk-source", "산책 안내", "https://example.com/walk", "walk"),
+                SourceCandidate("hotel-source", "숙소 안내", "https://example.com/hotel", "hotel"),
+            ),
+        )
+
+        val first = repository.applyApprovedDraft(trip, selection) as DraftApplyResult.Applied
+        assertEquals(1, first.itineraryAdded)
+        assertEquals(1, first.reservationAdded)
+        assertEquals(1, first.preparationAdded)
+        assertEquals(1, first.packingAdded)
+        assertEquals(2, first.sourceAdded)
+        assertEquals(1, repository.observeItinerary(trip.id).first().size)
+        assertEquals(1, repository.observeReservations(trip.id).first().size)
+        assertTrue(repository.observePreparation(trip.id).first().any { it.title == "운영 시간 재확인" && it.origin == ItemOrigin.AI })
+        assertTrue(repository.observePacking(trip.id).first().any { it.title == "충전 어댑터" && it.origin == ItemOrigin.AI })
+        assertEquals(0, database.tripDao().calendarActionCount(repository.observeItinerary(trip.id).first().single().id))
+
+        val repeated = repository.applyApprovedDraft(trip, selection) as DraftApplyResult.Applied
+        assertEquals(0, repeated.itineraryAdded + repeated.reservationAdded + repeated.preparationAdded + repeated.packingAdded + repeated.sourceAdded)
+        assertEquals(1, repository.observeItinerary(trip.id).first().size)
+        assertEquals(1, repository.observeReservations(trip.id).first().size)
+        assertEquals(2, repository.observeSources(trip.id).first().size)
+
+        val invalid = selection.copy(itinerary = listOf(selection.itinerary.single().copy(date = "2026-09-30")))
+        assertTrue(repository.applyApprovedDraft(trip, invalid) is DraftApplyResult.Rejected)
+        assertEquals(1, repository.observeItinerary(trip.id).first().size)
+        assertEquals(1, repository.observeReservations(trip.id).first().size)
+    }
+
+    @Test
+    fun readinessTemplatesAreIdempotentAndPreserveExistingManualAiDoneAndSkippedRows() = runBlocking {
+        assertEquals(
+            ValidationResult.Valid,
+            repository.createTrip(TripInput("제주", "Jeju", "2026-10-01", "2026-10-03", "Asia/Seoul", TravelScope.INTERNATIONAL)),
+        )
+        val trip = repository.observeTrips().first().single()
+        val completed = repository.observePreparation(trip.id).first().first { it.origin == ItemOrigin.DEFAULT }
+        repository.togglePreparation(completed)
+        val skipped = repository.observePreparation(trip.id).first().first { it.id != completed.id }
+        repository.skipPreparation(skipped.id)
+        assertEquals(ValidationResult.Valid, repository.addPreparation(trip.id, "반려동물 돌봄 부탁"))
+        database.tripDao().insertPreparation(
+            PreparationItemEntity(
+                id = UUID.randomUUID().toString(),
+                tripId = trip.id,
+                title = "AI가 제안한 개인 메모",
+                status = PreparationStatus.TODO,
+                origin = ItemOrigin.AI,
+                createdAtEpochMs = 1L,
+                templateId = null,
+            ),
+        )
+
+        repository.applyMissingScopeDefaults(trip.id, TravelScope.INTERNATIONAL)
+        val afterFirstApply = repository.observePreparation(trip.id).first()
+        repository.applyMissingScopeDefaults(trip.id, TravelScope.INTERNATIONAL)
+        val afterSecondApply = repository.observePreparation(trip.id).first()
+        assertEquals(afterFirstApply.size, afterSecondApply.size)
+        assertEquals(PreparationStatus.DONE, afterSecondApply.first { it.id == completed.id }.status)
+        assertEquals(PreparationStatus.SKIPPED, afterSecondApply.first { it.id == skipped.id }.status)
+        assertTrue(afterSecondApply.any { it.title == "반려동물 돌봄 부탁" && it.origin == ItemOrigin.MANUAL })
+        assertTrue(afterSecondApply.any { it.title == "AI가 제안한 개인 메모" && it.origin == ItemOrigin.AI })
+        assertTrue(afterSecondApply.any { it.templateId == "PASSPORT_VALIDITY_CHECK" })
+
+        repository.applyOptionalReadinessPack(trip.id, TravelScope.INTERNATIONAL, ChecklistGroup.MONEY_PAYMENT)
+        val optionalCount = repository.observePreparation(trip.id).first().size
+        repository.applyOptionalReadinessPack(trip.id, TravelScope.INTERNATIONAL, ChecklistGroup.MONEY_PAYMENT)
+        assertEquals(optionalCount, repository.observePreparation(trip.id).first().size)
+        assertTrue(ReadinessTemplateCatalog.optionalItems(TravelScope.INTERNATIONAL, ChecklistGroup.MONEY_PAYMENT).isNotEmpty())
     }
 }

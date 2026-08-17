@@ -2,6 +2,7 @@ package io.trippilot.app.core.data
 
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.model.TravelScope
+import io.trippilot.app.core.model.ReadinessTemplateCatalog
 import io.trippilot.app.core.model.TripInput
 import io.trippilot.app.core.model.TravelValidators
 import kotlinx.serialization.Serializable
@@ -14,7 +15,7 @@ import kotlinx.serialization.json.jsonPrimitive
 @Serializable
 data class TripBackupDocument(
     val schema: String = "trippilot.trip-backup",
-    val version: Int = 1,
+    val version: Int = 2,
     val trips: List<TripBackupTrip>,
 )
 
@@ -44,10 +45,21 @@ data class TripBackupItinerary(
 )
 
 @Serializable
-data class TripBackupPreparation(val title: String, val status: String, val origin: String)
+data class TripBackupPreparation(
+    val title: String,
+    val status: String,
+    val origin: String,
+    val templateId: String? = null,
+)
 
 @Serializable
-data class TripBackupPacking(val title: String, val quantity: Int, val isPacked: Boolean, val origin: String)
+data class TripBackupPacking(
+    val title: String,
+    val quantity: Int,
+    val isPacked: Boolean,
+    val origin: String,
+    val templateId: String? = null,
+)
 
 @Serializable
 data class TripBackupReservation(
@@ -141,7 +153,7 @@ object TripBackupCodec {
 
     private fun validate(document: TripBackupDocument): TripBackupDocument {
         require(document.schema == SCHEMA) { "지원하지 않는 백업 schema입니다." }
-        require(document.version == 1) { "지원하지 않는 백업 버전입니다." }
+        require(document.version in 1..2) { "지원하지 않는 백업 버전입니다." }
         require(document.trips.size <= MAX_TRIPS) { "여행 수 제한을 초과합니다." }
         document.trips.forEach {
             require(it.title.isNotBlank() && it.destination.isNotBlank()) { "백업 여행 제목과 목적지가 필요합니다." }
@@ -159,9 +171,11 @@ object TripBackupCodec {
             }
             it.preparation.forEach { item ->
                 require(item.title.isNotBlank() && item.status in io.trippilot.app.core.model.PreparationStatus.entries.map { status -> status.name } && item.origin in io.trippilot.app.core.model.ItemOrigin.entries.map { origin -> origin.name }) { "백업 준비 항목 값이 올바르지 않습니다." }
+                require(ReadinessTemplateCatalog.isKnownTemplateId(item.templateId)) { "백업 준비 항목 templateId가 올바르지 않습니다." }
             }
             it.packing.forEach { item ->
                 require(item.title.isNotBlank() && item.quantity >= 1 && item.origin in io.trippilot.app.core.model.ItemOrigin.entries.map { origin -> origin.name }) { "백업 짐 항목 값이 올바르지 않습니다." }
+                require(ReadinessTemplateCatalog.isKnownTemplateId(item.templateId)) { "백업 짐 항목 templateId가 올바르지 않습니다." }
             }
             it.reservations.forEach { item ->
                 require(item.provider.isNotBlank() && item.confirmationCode.isNotBlank() && item.status in io.trippilot.app.core.model.ReservationStatus.entries.map { status -> status.name }) { "백업 예약 값이 올바르지 않습니다." }

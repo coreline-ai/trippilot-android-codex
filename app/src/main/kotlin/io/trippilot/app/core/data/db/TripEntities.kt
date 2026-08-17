@@ -68,6 +68,7 @@ data class PreparationItemEntity(
     val status: PreparationStatus,
     val origin: ItemOrigin,
     val createdAtEpochMs: Long,
+    val templateId: String? = null,
 )
 
 @Entity(
@@ -88,6 +89,7 @@ data class PackingItemEntity(
     val isPacked: Boolean,
     val origin: ItemOrigin,
     val createdAtEpochMs: Long,
+    val templateId: String? = null,
 )
 
 @Entity(
