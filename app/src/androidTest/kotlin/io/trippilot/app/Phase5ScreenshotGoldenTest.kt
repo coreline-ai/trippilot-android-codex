@@ -9,6 +9,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -54,6 +55,19 @@ class Phase5ScreenshotGoldenTest {
 
         createStableTrip()
         captureOrAssert("02-trip-summary.png", composeRule.onNodeWithTag("trip_detail_screen"))
+
+        composeRule.onNodeWithTag("trip_area_journey").performClick()
+        composeRule.onNodeWithTag("trip_subpage_journey_itinerary").performClick()
+        composeRule.onNodeWithTag("add_itinerary").performClick()
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("itinerary_title_input").fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithTag("itinerary_title_input").performTextInput("서울역 도착")
+        composeRule.onNodeWithText("추가").performClick()
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("서울역 도착").fetchSemanticsNodes().isNotEmpty() }
+        captureOrAssert("05-itinerary.png", composeRule.onNodeWithTag("trip_detail_screen"))
+
+        composeRule.onNodeWithTag("trip_area_prepare").performClick()
+        composeRule.onNodeWithTag("readiness_screen").assertIsDisplayed()
+        captureOrAssert("06-readiness.png", composeRule.onNodeWithTag("readiness_screen"))
 
         composeRule.onNodeWithTag("trip_area_help").performClick()
         composeRule.onNodeWithTag("trip_subpage_help_drafts").performClick()

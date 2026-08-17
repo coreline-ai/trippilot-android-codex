@@ -18,6 +18,13 @@ OUT="$ROOT/app/build/reports/qa/design-journey"
 API_LEVEL="$("$ADB" -s "$SERIAL" shell getprop ro.build.version.sdk | tr -d '\r')"
 [[ "$API_LEVEL" =~ ^[0-9]+$ ]] && (( API_LEVEL >= 28 )) || { echo "API 28+ emulator required" >&2; exit 2; }
 
+restore() {
+  "$ADB" -s "$SERIAL" shell cmd uimode night no >/dev/null || true
+  "$ADB" -s "$SERIAL" shell settings put system font_scale 1.0 >/dev/null || true
+  "$ADB" -s "$SERIAL" shell wm size reset >/dev/null || true
+  "$ADB" -s "$SERIAL" shell wm density reset >/dev/null || true
+}
+trap restore EXIT
 "$ADB" -s "$SERIAL" shell cmd uimode night no
 "$ADB" -s "$SERIAL" shell settings put system font_scale 1.0
 "$ADB" -s "$SERIAL" uninstall "$PACKAGE" >/dev/null 2>&1 || true

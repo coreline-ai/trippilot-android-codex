@@ -128,3 +128,32 @@
 | T-BRIEF-5-09 | TripPilot app-only instrumentation regression | `JAVA_HOME=... ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest --console=plain --no-daemon` | PASS | 2026-08-16; API 26 18 tests, failures 0/errors 0, expected skip 2 (`DesignJourney` opt-in 및 API<28 capture). `TripFormSheet` expanded 상태/CTA accessibility를 포함한 현재 앱 regression 통과. |
 | T-BRIEF-5-10 | Samsung isolated Room v1→v2 fixture | `ANDROID_SERIAL=R3CY40PXCAP ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.trippilot.app.core.data.TripDatabaseMigrationTest` | PASS (fixture) / INCIDENT (deployment) | 2026-08-17; SM-S931N Android 16에서 1 test PASS. fixture DB 이름은 `migration-test-db`이며 normal TripPilot DB와 다르고 `@After` cleanup도 추가했다. 그러나 Gradle physical instrumentation lifecycle가 target `io.trippilot.app.debug`를 제거해 기존 debug Room data도 잃었다. isolated DB design만으로 user-owned package preservation을 보장하지 못하므로 이 방식은 실제 사용자 프로필에서 금지한다. |
 | T-BRIEF-5-11 | data recovery discovery + app availability recovery | Mac Downloads/Documents/Desktop/iCloud candidate paths, Samsung public Download/Documents/Android/media; fresh debug APK install | NO BACKUP FOUND / APP RESTORED EMPTY | 2026-08-17; 공개 파일명 검색에서 `trippilot-backup*.json` 등 candidate를 찾지 못했다. cloud/provider-private 위치까지의 완전한 탐색은 아니다. 삭제된 `io.trippilot.app.debug` 자리에 current debug APK를 빈 상태로 설치하고 `TripPilot`/`새 여행 만들기` UI를 확인했다. `io.trippilot.app.securedebug`는 변경하지 않았다. 원래 TokyoWeekend 상세 데이터는 복구하지 않았다. |
+
+## 2026-08-17 Android design loop
+
+물리 기기에서 `connectedAndroidTest` / uninstall / clear는 금지한다. 자동 캡처와 golden은 `emulator-*`만 허용한다.
+
+| ID | 검증 | 환경 / 명령 | 결과 | 증거 |
+|---|---|---|---|---|
+| T-LOOP-1-01 | 디자인 계약 JSON, 스킬 금지 문구, 자산 경로 | `python3 scripts/verify_design_contract.py` | PASS | 2026-08-17; content-system 4영역+8 journey, tokens/theme mapping, empty-readiness/reservations/sources runtime 경로 |
+| T-LOOP-1-02 | Phase 0 기존 디자인 계약 | `python3 scripts/verify_phase0_design.py` | PASS | 2026-08-17 |
+| T-LOOP-4-01 | RUN_STATE fixtures: completed / P1 / P2 / P3 / unapproved / physical | `python3 scripts/test_design_loop_fixtures.py` | PASS | 2026-08-17 |
+| T-LOOP-4-02 | 비에뮬레이터 serial 거부 | `ANDROID_SERIAL=R3CY40PXCAP scripts/run_android_design_qa.sh` dry | PASS (guard) | `Refusing non-emulator serial` exit 2; APK 제거 전 중단 |
+| T-LOOP-3-01 | Journey 고정 날짜 + golden 05/06 캡처 경로 | `DesignJourneyCaptureTest`, `Phase5ScreenshotGoldenTest` | IMPLEMENTED | fixture `2026-11-01`–`2026-11-03`; 05/06 파일은 첫 emulator `update` 후 승인 |
+| T-LOOP-5-01 | 정적 Phase 5 + design-loop 파일 | `python3 scripts/verify_phase5_release.py` | PASS | 2026-08-17; 기존 4 golden 유지. 05/06 PNG는 emulator update 잔여 |
+| T-LOOP-5-02 | JVM unit / lint | `JAVA_HOME=... ./gradlew :app:testDebugUnitTest :app:lintDebug --no-daemon` | PASS | 2026-08-17; BUILD SUCCESSFUL, lintDebug PASS |
+| T-LOOP-5-03 | androidTest compile | `./gradlew :app:compileDebugAndroidTestKotlin` | PASS | 2026-08-17; DesignTokenContractTest / DesignLayoutMatrixTest / golden 05-06 경로 컴파일 |
+| T-LOOP-5-04 | emulator connected / golden verify / 실기기 install -r | API 35 emulator + optional Samsung `adb install -r` | NOT RUN | 이 환경에 adb/emulator 없음. 사용자 기기 instrumentation은 금지 |
+
+## 2026-08-17 populated travel-document GUI
+
+데이터가 있는 목록·브리핑·일정·준비·예약을 Orbit/TripIt식 서류 UI로 읽는 Track 1. golden PNG는 사람 승인 없이 update하지 않았다. 삼성에서는 `adb install -r`만 허용한다.
+
+| ID | 검증 | 환경 / 명령 | 결과 | 증거 |
+|---|---|---|---|---|
+| T-POP-0-01 | populated 계약·적용/미적용표·PAR-01~17 | `python3 scripts/verify_phase0_design.py`; `git diff --check -- design` | PASS | 2026-08-17; contrast/manifest/parity 유지. `design-direction.md` rule 7, Orbit/TripIt 적용표, screen-map time rail/서류/n-m 와이어프레임 |
+| T-POP-1-01 | 목록 featured next-action 계산 | `TripNextActionCalculatorTest` via `:app:testDebugUnitTest` | PASS | 준비 남음 → 첫 일정 → 예약 서류 → 검토 순서. 삼성 `Busan Weekend`는 `다음: 준비 19개 남음`에 해당 |
+| T-POP-5-01 | JVM unit, lint, debug APK | `JAVA_HOME=Android Studio JBR ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon` | PASS | 2026-08-17; BUILD SUCCESSFUL, lintDebug PASS, `app-debug.apk` 129MB |
+| T-POP-5-02 | 정적 승인/로컬 경계 | `python3 scripts/verify_phase5_release.py` | PASS | Calendar/Intent/SAF 확인 UI, INTERNET 없음, golden 자동 update 없음 |
+| T-POP-5-03 | 삼성 보존 설치 | SM-S931N (`R3CY40PXCAP`): `adb install -r app-debug.apk`; `am start`; Room 읽기 | PASS (data) / LOCKED (visual) | 2026-08-17; streamed install Success, PID `30589`. `trippilot.db` 유지: `Busan Weekend` / Busan / 2026-08-17–19, prep 11, pack 8, itinerary 1, reservation 1, source 1. 화면 잠금으로 목록·브리핑 육안 탭은 사용자 잠금 해제 후. uninstall/clear/connected test 0건 |
+| T-POP-5-04 | screenshot golden update | `scripts/run_phase5_screenshot_golden.sh update` | NOT RUN | 시각 승인 전 자동 update 금지. 기존 4 golden 유지 |

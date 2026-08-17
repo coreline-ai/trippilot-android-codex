@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" role="img" aria-labelledby="title desc">
+  <title id="title">No sources yet</title>
+  <desc id="desc">Two document cards linked by a route that has not been opened.</desc>
+  <rect x="36" y="40" width="72" height="80" rx="14" fill="#D6E4F4"/>
+  <rect x="132" y="40" width="72" height="80" rx="14" fill="#D6E4F4"/>
+  <path d="M108 80h24" stroke="#16A8B8" stroke-linecap="round" stroke-width="8"/>
+  <circle cx="120" cy="80" r="10" fill="#F5F8FA" stroke="#16A8B8" stroke-width="6"/>
+  <path d="M50 62h44M50 86h28" stroke="#10243F" stroke-linecap="round" stroke-width="6"/>
+  <path d="M146 62h44M146 86h28" stroke="#697783" stroke-linecap="round" stroke-width="6"/>
+</svg>

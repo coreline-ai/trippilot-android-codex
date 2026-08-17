@@ -79,8 +79,10 @@ run_test() {
 
 if [[ "$MODE" == "update" ]]; then
   run_test true
-  for name in 01-trip-list-empty.png 02-trip-summary.png 03-draft-review.png 04-external-confirmation.png; do
-    "$ADB" -s "$SERIAL" exec-out run-as "$PACKAGE" cat "files/screenshot-goldens/$name" > "$GOLDEN_DIR/$name"
+  for name in \
+    01-trip-list-empty.png 02-trip-summary.png 03-draft-review.png 04-external-confirmation.png \
+    05-itinerary.png 06-readiness.png; do
+    "$ADB" -s "$SERIAL" exec-out run-as "$PACKAGE" cat "files/screenshot-goldens/$name" > "$GOLDEN_DIR/$name" || true
   done
 fi
 

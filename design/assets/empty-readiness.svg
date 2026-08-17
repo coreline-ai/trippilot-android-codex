@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" role="img" aria-labelledby="title desc">
+  <title id="title">No readiness items</title>
+  <desc id="desc">A checklist card with one open box and one completed item.</desc>
+  <rect x="48" y="22" width="144" height="116" rx="18" fill="#D6E4F4"/>
+  <rect x="68" y="48" width="22" height="22" rx="6" fill="#F5F8FA" stroke="#16A8B8" stroke-width="4"/>
+  <rect x="68" y="90" width="22" height="22" rx="6" fill="#25785C"/>
+  <path d="m73 101 4 4 10-10" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+  <path d="M104 59h68M104 101h50" stroke="#10243F" stroke-linecap="round" stroke-width="8"/>
+</svg>

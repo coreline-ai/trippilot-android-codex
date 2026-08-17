@@ -26,6 +26,9 @@ REQUIRED_ASSETS = (
     "route-ribbon.svg",
     "empty-trips.svg",
     "empty-itinerary.svg",
+    "empty-readiness.svg",
+    "empty-reservations.svg",
+    "empty-sources.svg",
     "ai-connection-required.svg",
 )
 PARITY_IDS = tuple(f"PAR-{index:02d}" for index in range(1, 18))

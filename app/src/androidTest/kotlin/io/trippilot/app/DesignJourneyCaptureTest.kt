@@ -21,7 +21,7 @@ import io.trippilot.app.feature.drafts.DraftUiState
 import io.trippilot.app.feature.drafts.TripDraftViewModel
 import java.io.File
 import java.io.FileOutputStream
-import java.time.LocalDate
+import androidx.compose.ui.test.performTextClearance
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -46,13 +46,17 @@ class DesignJourneyCaptureTest {
 
         val tripTitle = "도쿄 가을 기록"
         val destination = "Tokyo"
-        val start = LocalDate.now()
-        val end = start.plusDays(2)
+        val start = "2026-11-01"
+        val end = "2026-11-03"
 
         composeRule.onNodeWithText("새 여행 만들기").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("trip_title_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("trip_title_input").performTextInput(tripTitle)
         composeRule.onNodeWithTag("trip_destination_input").performTextInput(destination)
+        composeRule.onNodeWithTag("trip_start_input").performTextClearance()
+        composeRule.onNodeWithTag("trip_start_input").performTextInput(start)
+        composeRule.onNodeWithTag("trip_end_input").performTextClearance()
+        composeRule.onNodeWithTag("trip_end_input").performTextInput(end)
         composeRule.onNodeWithTag("confirm_trip").performClick()
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithContentDescription("$tripTitle, $destination, ${start}부터 $end").fetchSemanticsNodes().isNotEmpty()

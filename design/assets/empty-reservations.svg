@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" role="img" aria-labelledby="title desc">
+  <title id="title">No reservations yet</title>
+  <desc id="desc">A blank travel document waiting for a confirmation code.</desc>
+  <rect x="58" y="20" width="124" height="120" rx="16" fill="#D6E4F4"/>
+  <path d="M78 52h84M78 76h56" stroke="#10243F" stroke-linecap="round" stroke-width="8"/>
+  <rect x="78" y="104" width="64" height="16" rx="8" fill="#F5F8FA" stroke="#697783" stroke-width="4"/>
+  <circle cx="164" cy="112" r="9" fill="#F26A3D"/>
+</svg>
