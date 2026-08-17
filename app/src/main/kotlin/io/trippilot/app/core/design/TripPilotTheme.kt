@@ -1,6 +1,7 @@
 package io.trippilot.app.core.design
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -13,6 +14,9 @@ private val CloudPaper = Color(0xFFF5F8FA)
 private val SurfaceInk = Color(0xFF16202A)
 private val Cyan = Color(0xFF16A8B8)
 private val BoardingOrange = Color(0xFFF26A3D)
+private val BoardingOrangeDark = Color(0xFFFFB59A)
+private val OnBoardingOrange = Color(0xFF381002)
+private val OnBoardingOrangeDark = Color(0xFF4C1708)
 private val StampViolet = Color(0xFF6C63D9)
 private val MossGreen = Color(0xFF25785C)
 private val SignalRed = Color(0xFFB3261E)
@@ -24,6 +28,8 @@ private val LightTripPilotScheme = lightColorScheme(
     onPrimaryContainer = Color(0xFF0D1F35),
     secondary = Cyan,
     onSecondary = Color(0xFF002F35),
+    secondaryContainer = Color(0xFFD3F3E6),
+    onSecondaryContainer = Color(0xFF0B4D37),
     tertiary = StampViolet,
     onTertiary = Color.White,
     tertiaryContainer = Color(0xFFE6E2FF),
@@ -36,6 +42,7 @@ private val LightTripPilotScheme = lightColorScheme(
     onSurface = SurfaceInk,
     surfaceVariant = Color(0xFFE0E7ED),
     onSurfaceVariant = Color(0xFF38454F),
+    outline = Color(0xFF697783),
 )
 
 private val DarkTripPilotScheme = darkColorScheme(
@@ -45,6 +52,8 @@ private val DarkTripPilotScheme = darkColorScheme(
     onPrimaryContainer = Color(0xFFD6E4F4),
     secondary = Color(0xFF72D8E1),
     onSecondary = Color(0xFF00363B),
+    secondaryContainer = Color(0xFF164E3D),
+    onSecondaryContainer = Color(0xFFA6F0CF),
     tertiary = Color(0xFFC5BFFF),
     onTertiary = Color(0xFF292454),
     tertiaryContainer = Color(0xFF3D376C),
@@ -57,6 +66,15 @@ private val DarkTripPilotScheme = darkColorScheme(
     onSurface = Color(0xFFEAF1F6),
     surfaceVariant = Color(0xFF25313B),
     onSurfaceVariant = Color(0xFFD6E3EC),
+    outline = Color(0xFFA1B0BA),
+)
+
+private val TripPilotShapes = Shapes(
+    extraSmall = RoundedCornerShape(14.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
 @Composable
@@ -67,11 +85,16 @@ fun TripPilotTheme(
     MaterialTheme(
         colorScheme = if (darkTheme) DarkTripPilotScheme else LightTripPilotScheme,
         typography = TripPilotTypography,
+        shapes = TripPilotShapes,
         content = content,
     )
 }
 
 internal val TripPilotBoardingOrange = BoardingOrange
+internal val TripPilotBoardingOrangeDark = BoardingOrangeDark
+internal val TripPilotOnBoardingOrange = OnBoardingOrange
+internal val TripPilotOnBoardingOrangeDark = OnBoardingOrangeDark
+internal val TripPilotActionShape = RoundedCornerShape(14.dp)
 internal val TripPilotMossGreen = MossGreen
 internal val TripPilotHeroShape = RoundedCornerShape(28.dp)
 internal val TripPilotHeroScrimTop = Color(0x33061227)

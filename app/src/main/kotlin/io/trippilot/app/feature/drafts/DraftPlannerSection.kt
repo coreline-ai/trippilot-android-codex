@@ -41,6 +41,8 @@ import io.trippilot.app.core.codex.AuthStatus
 import io.trippilot.app.core.codex.RuntimeStatus
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.design.BriefingPanel
+import io.trippilot.app.core.design.PrimaryAction
+import io.trippilot.app.core.design.TripPilotActionShape
 import io.trippilot.app.integration.codex.contract.BudgetRange
 import io.trippilot.app.integration.codex.contract.ReservationType
 import io.trippilot.app.integration.codex.contract.TravelCompanion
@@ -116,17 +118,18 @@ private fun DraftRequestForm(trip: TripEntity, viewModel: TripDraftViewModel, on
             ChoiceRow(TravelCompanion.entries, companion, { it.name }) { companion = it }
             Text("예산 범위", style = MaterialTheme.typography.labelLarge)
             ChoiceRow(BudgetRange.entries, budget, { it.name }) { budget = it }
-            Button(
+            PrimaryAction(
+                label = "여행 초안 만들기",
                 onClick = { viewModel.createPlan(trip, purpose, companion, budget, interests.split(',')) },
                 modifier = Modifier.fillMaxWidth()
                     // A stable Korean label keeps TalkBack and macro-profile automation aligned.
                     .semantics { contentDescription = "여행 초안 만들기" }
                     .testTag("create_fake_draft"),
-            ) { Text("여행 초안 만들기") }
+            )
             HorizontalDivider()
             OutlinedTextField(reservationHint, { reservationHint = it }, label = { Text("예약 분석 메모") }, modifier = Modifier.fillMaxWidth().testTag("reservation_analysis_input"))
-            OutlinedButton(onClick = { viewModel.createReservationAnalysis(trip, reservationHint) }, modifier = Modifier.fillMaxWidth().testTag("create_fake_reservation_draft")) { Text("예약 초안 미리보기") }
-            OutlinedButton(onClick = { viewModel.createWeatherAdvisory(trip) }, modifier = Modifier.fillMaxWidth().testTag("create_fake_weather")) { Text("날씨 참고 보기 (정보성)") }
+            OutlinedButton(onClick = { viewModel.createReservationAnalysis(trip, reservationHint) }, modifier = Modifier.fillMaxWidth().testTag("create_fake_reservation_draft"), shape = TripPilotActionShape) { Text("예약 초안 미리보기") }
+            OutlinedButton(onClick = { viewModel.createWeatherAdvisory(trip) }, modifier = Modifier.fillMaxWidth().testTag("create_fake_weather"), shape = TripPilotActionShape) { Text("날씨 참고 보기 (정보성)") }
             TextButton(onClick = onPaste, modifier = Modifier.testTag("paste_draft_json")) { Text("구조화 JSON 직접 붙여넣기") }
         }
     }
@@ -154,6 +157,7 @@ private fun CodexConnectionCard(viewModel: TripDraftViewModel) {
                 AuthStatus.LOGIN_REQUIRED, AuthStatus.CANCELLED, AuthStatus.ERROR -> Button(
                     onClick = viewModel::beginCodexLogin,
                     modifier = Modifier.fillMaxWidth().testTag("begin_codex_device_login"),
+                    shape = TripPilotActionShape,
                 ) { Text("OpenAI 계정으로 연결") }
                 AuthStatus.LOGIN_IN_PROGRESS -> {
                     challenge?.let {
@@ -162,10 +166,12 @@ private fun CodexConnectionCard(viewModel: TripDraftViewModel) {
                         Button(
                             onClick = { showBrowserConfirmation = true },
                             modifier = Modifier.fillMaxWidth().testTag("confirm_open_codex_login_browser"),
+                            shape = TripPilotActionShape,
                         ) { Text("로그인 브라우저 열기") }
                         OutlinedButton(
                             onClick = viewModel::refreshCodexAfterBrowserReturn,
                             modifier = Modifier.fillMaxWidth().testTag("refresh_codex_login"),
+                            shape = TripPilotActionShape,
                         ) { Text("로그인 완료 확인") }
                     }
                     TextButton(onClick = viewModel::cancelCodexLogin, modifier = Modifier.testTag("cancel_codex_login")) { Text("연결 취소") }
@@ -193,6 +199,7 @@ private fun CodexConnectionCard(viewModel: TripDraftViewModel) {
                         showBrowserConfirmation = false
                     },
                     modifier = Modifier.testTag("open_codex_login_browser"),
+                    shape = TripPilotActionShape,
                 ) { Text("브라우저 열기") }
             },
             dismissButton = { TextButton(onClick = { showBrowserConfirmation = false }) { Text("취소") } },
@@ -215,8 +222,8 @@ private fun <T> ChoiceRow(items: List<T>, selected: T, label: (T) -> String, onS
     items.chunked(3).forEach { row ->
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             row.forEach { item ->
-                if (item == selected) Button(onClick = { onSelected(item) }) { Text(label(item)) }
-                else OutlinedButton(onClick = { onSelected(item) }) { Text(label(item)) }
+                if (item == selected) Button(onClick = { onSelected(item) }, shape = TripPilotActionShape) { Text(label(item)) }
+                else OutlinedButton(onClick = { onSelected(item) }, shape = TripPilotActionShape) { Text(label(item)) }
             }
         }
     }
@@ -228,7 +235,7 @@ private fun GeneratingCard(state: DraftUiState.Generating, onStop: () -> Unit) =
     eyebrow = "초안 생성 중",
     title = state.message,
     body = "${state.stage}. 원문 응답은 저장하지 않습니다.",
-    action = { OutlinedButton(onClick = onStop, modifier = Modifier.testTag("stop_draft_generation")) { Text("생성 중지") } },
+    action = { OutlinedButton(onClick = onStop, modifier = Modifier.testTag("stop_draft_generation"), shape = TripPilotActionShape) { Text("생성 중지") } },
 )
 
 @Composable
@@ -251,7 +258,7 @@ private fun DraftReviewCard(review: ReviewDraft, viewModel: TripDraftViewModel, 
         ReviewPacking(review, viewModel)
         ReviewSources(review, viewModel)
         ReviewAssumptions(review.assumptions)
-        Button(onClick = onApply, modifier = Modifier.fillMaxWidth().testTag("apply_selected_draft")) { Text("선택한 항목만 여행에 반영") }
+        PrimaryAction("선택한 항목만 여행에 반영", onApply, Modifier.fillMaxWidth().testTag("apply_selected_draft"))
         TextButton(onClick = onDiscard, modifier = Modifier.testTag("discard_draft")) { Text("초안 버리기") }
     }
 }
@@ -415,7 +422,7 @@ private fun ManualJsonDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit)
                 OutlinedTextField(json, { json = it }, label = { Text("TripPlanDraft JSON") }, modifier = Modifier.fillMaxWidth().testTag("manual_draft_json"), minLines = 6)
             }
         },
-        confirmButton = { Button(onClick = { onConfirm(json) }, modifier = Modifier.testTag("confirm_manual_draft")) { Text("검증 후 미리보기") } },
+        confirmButton = { Button(onClick = { onConfirm(json) }, modifier = Modifier.testTag("confirm_manual_draft"), shape = TripPilotActionShape) { Text("검증 후 미리보기") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } },
     )
 }

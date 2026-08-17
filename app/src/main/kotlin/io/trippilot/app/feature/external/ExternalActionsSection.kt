@@ -43,6 +43,7 @@ import io.trippilot.app.core.data.db.ReservationEntity
 import io.trippilot.app.core.data.db.SourceEvidenceEntity
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.design.ConfirmActionSheet
+import io.trippilot.app.core.design.TripPilotActionShape
 import io.trippilot.app.core.design.BriefingPanel
 import io.trippilot.app.core.external.ExternalHandoff
 import io.trippilot.app.core.model.CalendarActionStatus
@@ -244,7 +245,7 @@ private fun CalendarCard(
                 }
             }
         }
-        OutlinedButton(onClick = onReview, enabled = selectedIds.isNotEmpty(), modifier = Modifier.fillMaxWidth().testTag("calendar_review")) { Text("선택 일정 미리보기") }
+        OutlinedButton(onClick = onReview, enabled = selectedIds.isNotEmpty(), modifier = Modifier.fillMaxWidth().testTag("calendar_review"), shape = TripPilotActionShape) { Text("선택 일정 미리보기") }
     }
 }
 
@@ -253,9 +254,9 @@ private fun FileCard(selectedCount: Int, onIcs: () -> Unit, onBackupExport: () -
     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("파일", style = MaterialTheme.typography.titleMedium)
         Text("SAF 파일 선택기를 사용합니다. 앱은 임의 경로를 읽거나 쓰지 않습니다.")
-        OutlinedButton(onClick = onIcs, enabled = selectedCount > 0, modifier = Modifier.fillMaxWidth().testTag("ics_export_review")) { Text("선택 일정 ICS 내보내기") }
-        OutlinedButton(onClick = onBackupExport, modifier = Modifier.fillMaxWidth().testTag("backup_export_review")) { Text("로컬 백업 JSON 내보내기") }
-        OutlinedButton(onClick = onBackupImport, modifier = Modifier.fillMaxWidth().testTag("backup_import_review")) { Text("백업 JSON 가져오기") }
+        OutlinedButton(onClick = onIcs, enabled = selectedCount > 0, modifier = Modifier.fillMaxWidth().testTag("ics_export_review"), shape = TripPilotActionShape) { Text("선택 일정 ICS 내보내기") }
+        OutlinedButton(onClick = onBackupExport, modifier = Modifier.fillMaxWidth().testTag("backup_export_review"), shape = TripPilotActionShape) { Text("로컬 백업 JSON 내보내기") }
+        OutlinedButton(onClick = onBackupImport, modifier = Modifier.fillMaxWidth().testTag("backup_import_review"), shape = TripPilotActionShape) { Text("백업 JSON 가져오기") }
     }
 }
 
@@ -264,7 +265,7 @@ private fun ReminderCard(reminder: ReadinessReminderEntity?, onEnable: () -> Uni
     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("준비 알림", style = MaterialTheme.typography.titleMedium)
         Text(if (reminder?.enabled == true) "켜짐 — D-7부터 D-1까지 미완료일에 하루 한 번" else "꺼짐 — 알림 권한과 설정을 모두 승인해야 합니다.")
-        OutlinedButton(onClick = if (reminder?.enabled == true) onDisable else onEnable, modifier = Modifier.fillMaxWidth().testTag("reminder_review")) {
+        OutlinedButton(onClick = if (reminder?.enabled == true) onDisable else onEnable, modifier = Modifier.fillMaxWidth().testTag("reminder_review"), shape = TripPilotActionShape) {
             Text(if (reminder?.enabled == true) "알림 끄기" else "알림 켜기")
         }
     }

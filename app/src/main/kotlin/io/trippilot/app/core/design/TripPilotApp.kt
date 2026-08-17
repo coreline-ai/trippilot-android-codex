@@ -319,6 +319,7 @@ private fun TripAreaNavigation(selected: TripArea, onSelected: (TripArea) -> Uni
                     Button(
                         onClick = { onSelected(candidate) },
                         modifier = Modifier.weight(1f).testTag("trip_area_${candidate.name.lowercase()}"),
+                        shape = TripPilotActionShape,
                     ) { Text(candidate.label, maxLines = 1) }
                 } else {
                     TextButton(
@@ -353,11 +354,13 @@ private fun <T> SubPageNavigation(
                 Button(
                     onClick = { onSelected(candidate) },
                     modifier = Modifier.weight(1f).testTag("trip_subpage_${group}_${tag(candidate)}"),
+                    shape = TripPilotActionShape,
                 ) { Text(label(candidate), maxLines = 1) }
-            } else {
+                } else {
                 OutlinedButton(
                     onClick = { onSelected(candidate) },
                     modifier = Modifier.weight(1f).testTag("trip_subpage_${group}_${tag(candidate)}"),
+                    shape = TripPilotActionShape,
                 ) { Text(label(candidate), maxLines = 1) }
             }
         }
@@ -429,7 +432,7 @@ private fun TripDetailScreen(
         if (incomingShare != null) {
             SurfaceNotice("공유한 예약 텍스트", "이 여행에만 24시간 동안 임시 보관합니다. 자동 분석이나 예약 저장은 하지 않습니다.", Modifier.padding(horizontal = 20.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { viewModel.savePendingShare(trip.id) }, modifier = Modifier.testTag("save_shared_text")) { Text("이 여행에 보관") }
+                    Button(onClick = { viewModel.savePendingShare(trip.id) }, modifier = Modifier.testTag("save_shared_text"), shape = TripPilotActionShape) { Text("이 여행에 보관") }
                     TextButton(onClick = viewModel::dismissPendingShare) { Text("무시") }
                 }
             }
@@ -638,7 +641,7 @@ private fun TripSummary(
             body = "링크는 직접 추가한 텍스트만 보관하며, 앱이 자동으로 열거나 검사하지 않습니다.",
         )
         SurfaceNotice("기본 준비 팩", "${scopeLabel(trip.scope)} 범위에서 누락된 기본 항목만 더합니다. 직접 적거나 완료한 항목은 바꾸지 않습니다.") {
-            OutlinedButton(onClick = onApplyDefaults) { Text("기본 항목 다시 적용") }
+            OutlinedButton(onClick = onApplyDefaults, shape = TripPilotActionShape) { Text("기본 항목 다시 적용") }
         }
         BriefingPanel(
             kind = "draft",
@@ -677,7 +680,7 @@ private fun ItinerarySection(
                 Text("일정", style = MaterialTheme.typography.headlineSmall)
                 Text("선택한 날짜의 시간 흐름을 직접 기록합니다.", style = MaterialTheme.typography.bodySmall)
             }
-            OutlinedButton(onClick = { onAdd(visibleDate.ifBlank { trip.startDate }) }, modifier = Modifier.testTag("add_itinerary")) { Text("일정 추가") }
+            OutlinedButton(onClick = { onAdd(visibleDate.ifBlank { trip.startDate }) }, modifier = Modifier.testTag("add_itinerary"), shape = TripPilotActionShape) { Text("일정 추가") }
         }
         Surface(
             modifier = Modifier.fillMaxWidth().testTag("itinerary_date_selector"),
@@ -693,12 +696,12 @@ private fun ItinerarySection(
                 dates.forEachIndexed { index, date ->
                     val selected = date == visibleDate
                     if (selected) {
-                        Button(onClick = { onDateSelected(date) }, modifier = Modifier.testTag("itinerary_date_$date")) {
-                            Text("DAY ${index + 1}\\n${date.takeLast(5)}")
+                        Button(onClick = { onDateSelected(date) }, modifier = Modifier.testTag("itinerary_date_$date"), shape = TripPilotActionShape) {
+                            Text("DAY ${index + 1}\n${date.takeLast(5)}")
                         }
                     } else {
-                        OutlinedButton(onClick = { onDateSelected(date) }, modifier = Modifier.testTag("itinerary_date_$date")) {
-                            Text("DAY ${index + 1}\\n${date.takeLast(5)}")
+                        OutlinedButton(onClick = { onDateSelected(date) }, modifier = Modifier.testTag("itinerary_date_$date"), shape = TripPilotActionShape) {
+                            Text("DAY ${index + 1}\n${date.takeLast(5)}")
                         }
                     }
                 }
@@ -710,7 +713,12 @@ private fun ItinerarySection(
             title = if (dayItems.isEmpty()) "아직 이 날의 일정이 없습니다" else "${dayItems.size}개 일정이 있습니다",
             body = if (dayItems.isEmpty()) "시간과 장소를 직접 추가하면 이 날의 타임라인에 표시합니다." else "하루 종일 일정은 시간 일정 뒤에 표시합니다.",
         )
-        if (dayItems.isEmpty()) EmptyState("아직 일정이 없습니다", "선택한 날짜에 첫 일정을 직접 추가해 보세요.", R.drawable.trippilot_empty_itinerary)
+        if (dayItems.isEmpty()) {
+            // The status panel already explains the empty day. A second, fixed-height
+            // illustration was clipped below the fold on compact phones and made the
+            // screen look unfinished, so keep one concise empty-state surface.
+            Spacer(Modifier.weight(1f))
+        }
         // Keep the header pinned and give the timeline a definite viewport.  Without
         // the weight a nested LazyColumn can be measured inconsistently after process
         // recreation on compact API 26 devices.
@@ -810,9 +818,10 @@ private fun ReadinessSection(
                     Text("선택 팩", style = MaterialTheme.typography.titleMedium)
                     Text("필요한 그룹만 추가합니다. 귀국 후 항목도 자동으로 추가하지 않습니다.", style = MaterialTheme.typography.bodySmall)
                     optionalGroups.forEach { group ->
-                        TextButton(
+                        OutlinedButton(
                             onClick = { onApplyOptionalPack(group) },
-                            modifier = Modifier.testTag("add_optional_pack_${group.name.lowercase()}"),
+                            modifier = Modifier.fillMaxWidth().testTag("add_optional_pack_${group.name.lowercase()}"),
+                            shape = TripPilotActionShape,
                         ) {
                             Text("${group.label} 팩 추가")
                         }
@@ -920,21 +929,25 @@ private fun ChecklistRow(
     onChecked: () -> Unit,
     onSkip: (() -> Unit)?,
     onDelete: () -> Unit,
-) = Row(
+) = Column(
     Modifier
         .fillMaxWidth()
         .semantics { contentDescription = "$title, $group, $detail, $state, ${if (checked) "완료" else "미완료"}" },
-    verticalAlignment = Alignment.CenterVertically,
+    verticalArrangement = Arrangement.spacedBy(2.dp),
 ) {
-    Checkbox(checked = checked, onCheckedChange = { onChecked() })
-    Spacer(Modifier.width(6.dp))
-    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        Text(detail, style = MaterialTheme.typography.bodySmall)
-        Text(state, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(verticalAlignment = Alignment.Top) {
+        Checkbox(checked = checked, onCheckedChange = { onChecked() })
+        Spacer(Modifier.width(6.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(detail, style = MaterialTheme.typography.bodySmall)
+            Text(state, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
-    onSkip?.let { TextButton(onClick = it) { Text("건너뜀") } }
-    TextButton(onClick = onDelete) { Text("삭제") }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        onSkip?.let { TextButton(onClick = it) { Text("건너뜀") } }
+        TextButton(onClick = onDelete) { Text("삭제") }
+    }
 }
 
 @Composable
@@ -945,7 +958,7 @@ private fun ReservationSection(reservations: List<ReservationEntity>, pendingSha
                 Text("여행 서류", style = MaterialTheme.typography.headlineSmall)
                 Text("직접 확인한 예약의 확인번호와 출처를 보관합니다.", style = MaterialTheme.typography.bodySmall)
             }
-            OutlinedButton(onClick = onAdd, modifier = Modifier.testTag("add_reservation")) { Text("예약 추가") }
+            OutlinedButton(onClick = onAdd, modifier = Modifier.testTag("add_reservation"), shape = TripPilotActionShape) { Text("예약 추가") }
         }
         if (reservations.isEmpty()) {
             BriefingPanel(
@@ -1109,8 +1122,8 @@ private fun TripEditorDialog(title: String, confirmLabel: String, onDismiss: () 
             Text("여행 범위", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TravelScope.entries.forEach { candidate ->
-                    if (candidate == scope) Button(onClick = { scope = candidate }) { Text(scopeLabel(candidate)) }
-                    else OutlinedButton(onClick = { scope = candidate }) { Text(scopeLabel(candidate)) }
+                    if (candidate == scope) Button(onClick = { scope = candidate }, shape = TripPilotActionShape) { Text(scopeLabel(candidate)) }
+                    else OutlinedButton(onClick = { scope = candidate }, shape = TripPilotActionShape) { Text(scopeLabel(candidate)) }
                 }
             }
         }
@@ -1170,8 +1183,8 @@ private fun ReservationDialog(onDismiss: () -> Unit, initial: ReservationEntity?
             Text("상태", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 ReservationStatus.entries.forEach { candidate ->
-                    if (candidate == status) Button(onClick = { status = candidate }) { Text(candidate.name) }
-                    else OutlinedButton(onClick = { status = candidate }) { Text(candidate.name) }
+                    if (candidate == status) Button(onClick = { status = candidate }, shape = TripPilotActionShape) { Text(candidate.name) }
+                    else OutlinedButton(onClick = { status = candidate }, shape = TripPilotActionShape) { Text(candidate.name) }
                 }
             }
             if (!canConfirm) Text("예약처·확인번호와 http/https URL 형식을 확인하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -1211,8 +1224,8 @@ private fun RecheckDialog(source: SourceEvidenceEntity, onDismiss: () -> Unit, o
         Column(contentModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(date, { date = it }, label = { Text("확인일 (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
             RecheckResult.entries.forEach { candidate ->
-                if (candidate == result) Button(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth()) { Text(recheckLabel(candidate)) }
-                else OutlinedButton(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth()) { Text(recheckLabel(candidate)) }
+                if (candidate == result) Button(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth(), shape = TripPilotActionShape) { Text(recheckLabel(candidate)) }
+                else OutlinedButton(onClick = { result = candidate }, modifier = Modifier.fillMaxWidth(), shape = TripPilotActionShape) { Text(recheckLabel(candidate)) }
             }
         }
     }

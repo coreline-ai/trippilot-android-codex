@@ -2,6 +2,7 @@ package io.trippilot.app.core.design
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,8 +75,8 @@ fun TripBriefScaffold(
             }
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
                     .widthIn(max = 840.dp)
+                    .fillMaxSize()
                     .align(Alignment.TopCenter),
             ) {
                 content(padding, windowClass)
@@ -258,6 +259,7 @@ fun TripFormSheet(
                     onClick = onConfirm,
                     enabled = confirmEnabled,
                     modifier = if (confirmTag == null) Modifier else Modifier.testTag(confirmTag),
+                    shape = TripPilotActionShape,
                 ) { Text(confirmLabel) }
             }
         }
@@ -286,6 +288,7 @@ fun PrimaryAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val darkTheme = isSystemInDarkTheme()
     Button(
         onClick = onClick,
         modifier = modifier
@@ -296,9 +299,10 @@ fun PrimaryAction(
             .heightIn(min = 52.dp)
             .testTag("primary_action"),
         enabled = enabled,
+        shape = TripPilotActionShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = TripPilotBoardingOrange,
-            contentColor = Color(0xFF381002),
+            containerColor = if (darkTheme) TripPilotBoardingOrangeDark else TripPilotBoardingOrange,
+            contentColor = if (darkTheme) TripPilotOnBoardingOrangeDark else TripPilotOnBoardingOrange,
         ),
     ) {
         // The explicit padding participates in measurement, unlike a clipped
@@ -353,7 +357,7 @@ fun ConfirmActionSheet(
         title = { Text(title) },
         text = { Text(body) },
         confirmButton = {
-            Button(onClick = onConfirm, modifier = Modifier.testTag("confirm_action")) {
+            Button(onClick = onConfirm, modifier = Modifier.testTag("confirm_action"), shape = TripPilotActionShape) {
                 Text(confirmLabel)
             }
         },
