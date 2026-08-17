@@ -11,8 +11,11 @@ import io.trippilot.app.core.external.CalendarWriteResult
 import io.trippilot.app.core.reminders.ReadinessReminderCoordinator
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /** UI-facing effects only; all callers are wired from explicit confirmation buttons. */
@@ -25,18 +28,28 @@ class TripExternalViewModel @Inject constructor(
     private val mutableMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val messages: SharedFlow<String> = mutableMessages.asSharedFlow()
 
+    // In-flight flag for the approval sheet LOADING state: a second confirm tap
+    // must not queue a second Calendar write (hallmark-guide.md §3).
+    private val mutableCalendarWriting = MutableStateFlow(false)
+    val calendarWriting: StateFlow<Boolean> = mutableCalendarWriting.asStateFlow()
+
     fun observeCalendarActions(tripId: String) = repository.observeCalendarActions(tripId)
     fun observeReminder(tripId: String) = repository.observeReadinessReminder(tripId)
     fun calendarTargetLabel(): String? = calendarWrites.targetLabel()
     fun notificationPermissionGranted(): Boolean = reminders.notificationPermissionGranted()
 
     fun writeSelectedToCalendar(trip: TripEntity, selected: List<ItineraryItemEntity>) = viewModelScope.launch {
-        when (val result = calendarWrites.executeApproved(trip, selected)) {
-            CalendarWriteResult.PermissionRequired -> mutableMessages.emit("Calendar 권한을 먼저 허용하세요. 권한만으로는 일정이 추가되지 않습니다.")
-            CalendarWriteResult.NoWritableCalendar -> mutableMessages.emit("쓰기 가능한 Calendar를 찾지 못했습니다. 일정은 변경되지 않았습니다.")
-            is CalendarWriteResult.Completed -> mutableMessages.emit(
-                "Calendar 반영: ${result.executed}개 추가, ${result.alreadyPresent}개 중복 방지, ${result.failed}개 실패",
-            )
+        if (!mutableCalendarWriting.compareAndSet(expect = false, update = true)) return@launch
+        try {
+            when (val result = calendarWrites.executeApproved(trip, selected)) {
+                CalendarWriteResult.PermissionRequired -> mutableMessages.emit("Calendar 권한을 먼저 허용하세요. 권한만으로는 일정이 추가되지 않습니다.")
+                CalendarWriteResult.NoWritableCalendar -> mutableMessages.emit("쓰기 가능한 Calendar를 찾지 못했습니다. 일정은 변경되지 않았습니다.")
+                is CalendarWriteResult.Completed -> mutableMessages.emit(
+                    "Calendar 반영: ${result.executed}개 추가, ${result.alreadyPresent}개 중복 방지, ${result.failed}개 실패",
+                )
+            }
+        } finally {
+            mutableCalendarWriting.value = false
         }
     }
 

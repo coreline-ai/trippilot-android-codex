@@ -157,3 +157,19 @@
 | T-POP-5-02 | 정적 승인/로컬 경계 | `python3 scripts/verify_phase5_release.py` | PASS | Calendar/Intent/SAF 확인 UI, INTERNET 없음, golden 자동 update 없음 |
 | T-POP-5-03 | 삼성 보존 설치 | SM-S931N (`R3CY40PXCAP`): `adb install -r app-debug.apk`; `am start`; Room 읽기 | PASS (data) / LOCKED (visual) | 2026-08-17; streamed install Success, PID `30589`. `trippilot.db` 유지: `Busan Weekend` / Busan / 2026-08-17–19, prep 11, pack 8, itinerary 1, reservation 1, source 1. 화면 잠금으로 목록·브리핑 육안 탭은 사용자 잠금 해제 후. uninstall/clear/connected test 0건 |
 | T-POP-5-04 | screenshot golden update | `scripts/run_phase5_screenshot_golden.sh update` | NOT RUN | 시각 승인 전 자동 update 금지. 기존 4 golden 유지 |
+
+## 2026-08-17 Hallmark 가이드 적용 (T-HMK)
+
+반(反)AI-slop 디자인 규율을 TripPilot에 적용한 Track (dev-plan `implement_20260817_230636.md`). 정적 slop 게이트는 로컬 결정론 검증, 시각·계측 게이트는 emulator/사람 승인 대기.
+
+| ID | 검증 | 환경 / 명령 | 결과 | 증거 |
+|---|---|---|---|---|
+| T-HMK-0-01 | 가이드 정본·slopGates 스키마·dead code 제거 | `design/hallmark-guide.md`, `design/audit/design-review.json`, `python3 scripts/test_design_loop_fixtures.py` | PASS | 2026-08-17; 6대 규율+게이트 15항+macrostructure 표. slopGates 15항 pending → 정적 6항 pass |
+| T-HMK-1-01 | 정적 slop 게이트 3/5/10/12 + 부정 fixture | `python3 scripts/verify_design_contract.py` | PASS | 2026-08-17; 위반 fixture 4종 FAIL 확인. TripPilotApp/DraftPlannerSection 0 위반 |
+| T-HMK-2-01 | 핵심 컴포넌트 8-state + showcase preview | `./gradlew :app:compileDebugKotlin`; `TripInteractionState` (PrimaryAction/ChecklistRow/SelectableCard/ConfirmActionSheet) | PASS | 2026-08-17; 상태색은 colorScheme 역할만 사용. Preview 렌더는 Android Studio에서 사용자 확인 |
+| T-HMK-3-01 | macrostructure 등록 + gate-4/15 | `python3 scripts/verify_design_contract.py` | PASS | 2026-08-17; 7 페이지+shell 등록. `SummaryMetric` 4연속 → 2×2 그리드 교정. Surface 3연속 fixture FAIL 확인 |
+| T-HMK-4-01 | 레이아웃 매트릭스 320/360/414dp | `./gradlew :app:compileDebugAndroidTestKotlin` | PASS (compile) / NOT RUN (emulator) | 2026-08-17; 테스트 클래스 KDoc에 실행 명령 기록. 실행은 T-LOOP-5-04 emulator 확보 후 |
+| T-HMK-5-01 | slopGates→RUN_STATE 연동 | `python3 scripts/test_design_loop_fixtures.py` | PASS | 2026-08-17; 정적 게이트 fail/missing → blocked 시나리오 포함 9 시나리오 |
+| T-HMK-5-02 | QA 러너 회귀 (dry-path) | `DESIGN_LOOP_SKIP_EMULATOR=1 scripts/run_android_design_qa.sh` | PASS | 2026-08-17; 신규 게이트 자동 포함 확인 |
+| T-HMK-6-01 | 초안 반영 LOADING 연결 + 이중 탭 차단 | `DraftUiState.Applying`; `./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest` | PASS | 2026-08-17; 반영 버튼 LOADING("…"), 버리기 비활성. 기존 unit/androidTest 회귀 없음 |
+| T-HMK-6-02 | 승인 시트 상태 연결 (Calendar LOADING·handoff ERROR) | `calendarWriting` StateFlow; `compileDebugKotlin/AndroidTestKotlin`, `testDebugUnitTest` | PASS | 2026-08-17; Calendar 이중 승인 compareAndSet 차단, handoff 실패 시 "다시 시도" ERROR 유지 |

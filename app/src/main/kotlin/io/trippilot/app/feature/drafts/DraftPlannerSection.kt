@@ -42,7 +42,9 @@ import io.trippilot.app.core.codex.RuntimeStatus
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.design.BriefingPanel
 import io.trippilot.app.core.design.PrimaryAction
+import io.trippilot.app.core.design.TripInteractionState
 import io.trippilot.app.core.design.TripPilotActionShape
+import io.trippilot.app.core.design.TripPilotTheme
 import io.trippilot.app.integration.codex.contract.BudgetRange
 import io.trippilot.app.integration.codex.contract.ReservationType
 import io.trippilot.app.integration.codex.contract.TravelCompanion
@@ -79,6 +81,7 @@ fun DraftPlannerSection(trip: TripEntity, viewModel: TripDraftViewModel) {
             DraftUiState.Idle -> DraftRequestForm(trip, viewModel, { showPasteDialog = true }, authStatus)
             is DraftUiState.Generating -> GeneratingCard(current, viewModel::stopGeneration)
             is DraftUiState.Review -> DraftReviewCard(current.draft, viewModel, { viewModel.applySelected(trip) }, viewModel::discardReview)
+            is DraftUiState.Applying -> DraftReviewCard(current.draft, viewModel, { }, viewModel::discardReview, applying = true)
             is DraftUiState.Notice -> NoticeCard("안내", current.message) { viewModel.dismissMessage() }
             is DraftUiState.Error -> NoticeCard("초안을 반영하지 않았습니다", current.message) { viewModel.dismissMessage() }
             is DraftUiState.Applied -> AppliedCard(current.result, viewModel::dismissMessage)
@@ -239,7 +242,7 @@ private fun GeneratingCard(state: DraftUiState.Generating, onStop: () -> Unit) =
 )
 
 @Composable
-private fun DraftReviewCard(review: ReviewDraft, viewModel: TripDraftViewModel, onApply: () -> Unit, onDiscard: () -> Unit) {
+private fun DraftReviewCard(review: ReviewDraft, viewModel: TripDraftViewModel, onApply: () -> Unit, onDiscard: () -> Unit, applying: Boolean = false) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
@@ -258,8 +261,19 @@ private fun DraftReviewCard(review: ReviewDraft, viewModel: TripDraftViewModel, 
         ReviewPacking(review, viewModel)
         ReviewSources(review, viewModel)
         ReviewAssumptions(review.assumptions)
-        PrimaryAction("선택한 항목만 여행에 반영", onApply, Modifier.fillMaxWidth().testTag("apply_selected_draft"))
-        TextButton(onClick = onDiscard, modifier = Modifier.testTag("discard_draft")) { Text("초안 버리기") }
+        // LOADING while the single local transaction runs keeps a second tap
+        // from applying the same draft twice (hallmark-guide.md §3).
+        PrimaryAction(
+            "선택한 항목만 여행에 반영",
+            onApply,
+            Modifier.fillMaxWidth().testTag("apply_selected_draft"),
+            state = if (applying) TripInteractionState.LOADING else TripInteractionState.IDLE,
+        )
+        TextButton(
+            onClick = onDiscard,
+            enabled = !applying,
+            modifier = Modifier.testTag("discard_draft"),
+        ) { Text("초안 버리기") }
     }
 }
 
@@ -344,11 +358,26 @@ private fun ReviewGroup(title: String, count: Int, content: @Composable () -> Un
 }
 
 @Composable
-private fun SelectableCard(id: String, selected: Boolean, onSelected: (Boolean) -> Unit, summary: String, content: @Composable () -> Unit) {
+private fun SelectableCard(
+    id: String,
+    selected: Boolean,
+    onSelected: (Boolean) -> Unit,
+    summary: String,
+    interaction: TripInteractionState = TripInteractionState.IDLE,
+    content: @Composable () -> Unit,
+) {
     var editing by remember(id) { mutableStateOf(false) }
+    val disabled = interaction == TripInteractionState.DISABLED
     Surface(
         color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHighest,
         shape = MaterialTheme.shapes.medium,
+        // ERROR draws a border in addition to the text so color is never the
+        // only signal (hallmark-guide.md §3).
+        border = if (interaction == TripInteractionState.ERROR) {
+            androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.error)
+        } else {
+            null
+        },
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -358,20 +387,28 @@ private fun SelectableCard(id: String, selected: Boolean, onSelected: (Boolean) 
                         editing = false
                         onSelected(it)
                     },
+                    enabled = !disabled,
                     modifier = Modifier.semantics { contentDescription = "$summary 선택" }.testTag("draft_selection_$id"),
                 )
                 Column(Modifier.weight(1f).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(summary, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        if (selected) "반영 예정 · 필요하면 수정하세요" else "이번 반영에서 제외됨",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    val statusText = when (interaction) {
+                        TripInteractionState.LOADING -> "검증 중…"
+                        TripInteractionState.ERROR -> "검증 실패 · 항목을 다시 확인하세요"
+                        else -> if (selected) "반영 예정 · 필요하면 수정하세요" else "이번 반영에서 제외됨"
+                    }
+                    val statusColor = when (interaction) {
+                        TripInteractionState.ERROR -> MaterialTheme.colorScheme.error
+                        TripInteractionState.LOADING -> MaterialTheme.colorScheme.onTertiaryContainer
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                    Text(statusText, style = MaterialTheme.typography.bodySmall, color = statusColor)
                 }
             }
             if (selected) {
                 TextButton(
                     onClick = { editing = !editing },
+                    enabled = !disabled,
                     modifier = Modifier.testTag("edit_draft_$id"),
                 ) { Text(if (editing) "수정 완료" else "수정") }
                 if (editing) content()
@@ -428,3 +465,27 @@ private fun ManualJsonDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit)
 }
 
 private fun formatMinute(value: Int): String = "%02d:%02d".format(value / 60, value % 60)
+
+/** Eight-state showcase for the draft SelectableCard (hallmark-guide.md §3). */
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun SelectableCardStatesShowcase() {
+    TripPilotTheme {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("SelectableCard — 8 states", style = MaterialTheme.typography.titleMedium)
+            TripInteractionState.entries.forEach { state ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(state.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    SelectableCard(
+                        id = "showcase_${state.name}",
+                        selected = state == TripInteractionState.SELECTED || state == TripInteractionState.PRESSED,
+                        onSelected = {},
+                        summary = "11:30 점심 식당 (초안)",
+                        content = { Text("초안 상세 내용", style = MaterialTheme.typography.bodySmall) },
+                        interaction = state,
+                    )
+                }
+            }
+        }
+    }
+}

@@ -13,7 +13,11 @@
           "testTag": "trip_subpage_journey_summary",
           "screenTag": "trip_briefing_screen",
           "primaryAction": "briefing_next_action",
-          "states": ["empty", "populated"]
+          "macrostructure": "cover-and-single-cta",
+          "states": [
+            "empty",
+            "populated"
+          ]
         },
         {
           "id": "itinerary",
@@ -21,7 +25,12 @@
           "testTag": "trip_subpage_journey_itinerary",
           "screenTag": "trip_detail_screen",
           "primaryAction": "add_itinerary",
-          "states": ["empty", "populated", "form"]
+          "macrostructure": "time-rail-document",
+          "states": [
+            "empty",
+            "populated",
+            "form"
+          ]
         }
       ]
     },
@@ -36,7 +45,12 @@
           "testTag": "readiness_screen",
           "screenTag": "readiness_screen",
           "primaryAction": "add_preparation",
-          "states": ["empty", "populated", "form"]
+          "macrostructure": "checklist-groups",
+          "states": [
+            "empty",
+            "populated",
+            "form"
+          ]
         }
       ]
     },
@@ -51,7 +65,12 @@
           "testTag": "trip_subpage_storage_reservations",
           "screenTag": "trip_detail_screen",
           "primaryAction": "add_reservation",
-          "states": ["empty", "populated", "form"]
+          "macrostructure": "document-folder-rows",
+          "states": [
+            "empty",
+            "populated",
+            "form"
+          ]
         },
         {
           "id": "sources",
@@ -59,7 +78,12 @@
           "testTag": "trip_subpage_storage_sources",
           "screenTag": "trip_detail_screen",
           "primaryAction": "add_source_itinerary",
-          "states": ["empty", "populated", "form"]
+          "macrostructure": "document-folder-rows",
+          "states": [
+            "empty",
+            "populated",
+            "form"
+          ]
         }
       ]
     },
@@ -74,7 +98,11 @@
           "testTag": "trip_subpage_help_drafts",
           "screenTag": "draft_planner_screen",
           "primaryAction": "create_fake_draft",
-          "states": ["empty", "review"]
+          "macrostructure": "review-dashboard",
+          "states": [
+            "empty",
+            "review"
+          ]
         },
         {
           "id": "external",
@@ -82,7 +110,11 @@
           "testTag": "trip_subpage_help_external",
           "screenTag": "external_actions_section",
           "primaryAction": "backup_export_review",
-          "states": ["populated", "approval"]
+          "macrostructure": "approval-dashboard",
+          "states": [
+            "populated",
+            "approval"
+          ]
         }
       ]
     }
@@ -93,7 +125,10 @@
     "scaffold": "trip_brief_scaffold",
     "form": "trip_form_sheet",
     "approval": "approval_sheet",
-    "empty": "empty_state"
+    "empty": "empty_state",
+    "macrostructures": {
+      "list": "featured-cover-rail"
+    }
   },
   "journeyCaptures": [
     "01-list-featured.png",

@@ -206,6 +206,9 @@ class TripDraftViewModel @Inject constructor(
             mutableState.value = DraftUiState.Error("다른 여행의 초안입니다. 다시 열어 주세요.")
             return
         }
+        // Applying blocks a second tap while the single local transaction runs,
+        // so the same draft can never be applied twice (hallmark-guide.md §3 LOADING).
+        mutableState.value = DraftUiState.Applying(review)
         viewModelScope.launch {
             when (val result = repository.applyApprovedDraft(trip, review.toApprovedSelection())) {
                 is DraftApplyResult.Rejected -> mutableState.value = DraftUiState.Error(result.message)
@@ -267,6 +270,7 @@ sealed interface DraftUiState {
     data object Idle : DraftUiState
     data class Generating(val message: String, val stage: DraftStreamStage) : DraftUiState
     data class Review(val draft: ReviewDraft) : DraftUiState
+    data class Applying(val draft: ReviewDraft) : DraftUiState
     data class Notice(val message: String) : DraftUiState
     data class Error(val message: String) : DraftUiState
     data class Applied(val result: DraftApplyResult.Applied) : DraftUiState

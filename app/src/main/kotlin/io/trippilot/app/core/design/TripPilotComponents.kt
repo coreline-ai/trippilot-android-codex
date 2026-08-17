@@ -53,6 +53,55 @@ import io.trippilot.app.R
 enum class TripBriefWindowClass { COMPACT, MEDIUM, EXPANDED }
 
 /**
+ * The eight interaction states every TripPilot component must define
+ * (hallmark-guide.md §3). PRESSED and FOCUSED ride on the Material
+ * indication of the idle surface; the remaining states are explicit.
+ */
+enum class TripInteractionState { IDLE, PRESSED, FOCUSED, DISABLED, LOADING, ERROR, SUCCESS, SELECTED }
+
+/** Token-only color mapping for stateful actions (hallmark-guide.md §3). */
+@Composable
+private fun interactionColors(state: TripInteractionState): androidx.compose.material3.ButtonColors {
+    val scheme = MaterialTheme.colorScheme
+    return when (state) {
+        TripInteractionState.IDLE, TripInteractionState.PRESSED, TripInteractionState.FOCUSED ->
+            ButtonDefaults.buttonColors(
+                containerColor = if (isSystemInDarkTheme()) TripPilotBoardingOrangeDark else TripPilotBoardingOrange,
+                contentColor = if (isSystemInDarkTheme()) TripPilotOnBoardingOrangeDark else TripPilotOnBoardingOrange,
+            )
+        // Draft generation and apply run through the AI path, so an in-flight
+        // action reads as review-in-progress violet, never as confirmed navy.
+        TripInteractionState.LOADING -> ButtonDefaults.buttonColors(
+            containerColor = scheme.tertiaryContainer,
+            contentColor = scheme.onTertiaryContainer,
+        )
+        TripInteractionState.ERROR -> ButtonDefaults.buttonColors(
+            containerColor = scheme.error,
+            contentColor = scheme.onError,
+        )
+        TripInteractionState.SUCCESS -> ButtonDefaults.buttonColors(
+            containerColor = scheme.secondaryContainer,
+            contentColor = scheme.onSecondaryContainer,
+        )
+        TripInteractionState.SELECTED -> ButtonDefaults.buttonColors(
+            containerColor = scheme.secondary,
+            contentColor = scheme.onSecondary,
+        )
+        TripInteractionState.DISABLED -> ButtonDefaults.buttonColors(
+            containerColor = scheme.surfaceVariant,
+            contentColor = scheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** State label that keeps color from being the only signal (hallmark-guide.md §1). */
+private fun stateSuffix(state: TripInteractionState): String? = when (state) {
+    TripInteractionState.LOADING -> "…"
+    TripInteractionState.SUCCESS -> "✓ "
+    else -> null
+}
+
+/**
  * Shared app frame for the local Trip Briefing experience. It owns the system
  * inset, snackbar, centered reading pane and window classification so screen
  * content can stay focused on a single travel action.
@@ -287,8 +336,12 @@ fun PrimaryAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    state: TripInteractionState = TripInteractionState.IDLE,
 ) {
-    val darkTheme = isSystemInDarkTheme()
+    val resolved = when {
+        !enabled -> TripInteractionState.DISABLED
+        else -> state
+    }
     Button(
         onClick = onClick,
         modifier = modifier
@@ -298,19 +351,19 @@ fun PrimaryAction(
             // grow when the user's font scale needs another line-height.
             .heightIn(min = 52.dp)
             .testTag("primary_action"),
-        enabled = enabled,
+        enabled = resolved != TripInteractionState.DISABLED,
         shape = TripPilotActionShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (darkTheme) TripPilotBoardingOrangeDark else TripPilotBoardingOrange,
-            contentColor = if (darkTheme) TripPilotOnBoardingOrangeDark else TripPilotOnBoardingOrange,
-        ),
+        colors = interactionColors(resolved),
     ) {
         // The explicit padding participates in measurement, unlike a clipped
         // fixed-height container. At a 2.0x font scale this makes the button
         // taller instead of cutting off the Korean label's descenders.
+        val prefix = stateSuffix(resolved)
         Text(
-            text = label,
-            modifier = Modifier.padding(vertical = 4.dp),
+            text = if (prefix == null) label else "$prefix$label",
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .semantics { if (resolved == TripInteractionState.LOADING) contentDescription = "$label, 진행 중" },
             style = MaterialTheme.typography.labelLarge,
         )
     }
@@ -350,6 +403,7 @@ fun ConfirmActionSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    confirmState: TripInteractionState = TripInteractionState.IDLE,
 ) {
     AlertDialog(
         modifier = modifier.testTag("approval_sheet"),
@@ -357,8 +411,15 @@ fun ConfirmActionSheet(
         title = { Text(title) },
         text = { Text(body) },
         confirmButton = {
-            Button(onClick = onConfirm, modifier = Modifier.testTag("confirm_action"), shape = TripPilotActionShape) {
-                Text(confirmLabel)
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier.testTag("confirm_action"),
+                enabled = confirmState != TripInteractionState.DISABLED,
+                shape = TripPilotActionShape,
+                colors = interactionColors(confirmState),
+            ) {
+                val prefix = stateSuffix(confirmState)
+                Text(if (prefix == null) confirmLabel else "$prefix$confirmLabel")
             }
         },
         dismissButton = {
@@ -394,6 +455,41 @@ private fun EmptyStatePreview() {
             body = "새 여행을 만들면 준비할 일을 여행 브리프로 정리합니다.",
             illustration = R.drawable.trippilot_empty_trips,
             modifier = Modifier.padding(24.dp),
+        )
+    }
+}
+
+/**
+ * Eight-state showcase for PrimaryAction and ConfirmActionSheet
+ * (hallmark-guide.md §3). Previews are state documentation, not screens,
+ * so they are exempt from the one-primary-action gate.
+ */
+@Preview(showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun PrimaryActionStatesShowcase() {
+    TripPilotTheme {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("PrimaryAction — 8 states", style = MaterialTheme.typography.titleMedium)
+            TripInteractionState.entries.forEach { state ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(state.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    PrimaryAction("준비 항목 추가", {}, state = state)
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun ConfirmActionSheetStatesShowcase() {
+    TripPilotTheme {
+        ConfirmActionSheet(
+            title = "지도 열기",
+            body = "부산역 위치를 지도 앱에서 엽니다.",
+            confirmLabel = "지도 열기",
+            onConfirm = {},
+            onDismiss = {},
         )
     }
 }

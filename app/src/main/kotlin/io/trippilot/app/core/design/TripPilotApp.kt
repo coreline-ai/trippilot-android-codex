@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.trippilot.app.R
 import io.trippilot.app.core.data.db.ItineraryItemEntity
@@ -612,10 +613,16 @@ private fun TripSummary(
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("현재 상태", style = MaterialTheme.typography.titleMedium)
-                SummaryMetric("일정", "${itineraryCount}개")
-                SummaryMetric("준비", "${preparationPercent}% 완료")
-                SummaryMetric("짐", "${packingPercent}% 챙김")
-                SummaryMetric("예약", "${reservations.size}개")
+                // 2x2 metric grid instead of four stacked rows: the briefing keeps
+                // one glanceable status block, not a card-after-card list (hallmark-guide.md §2).
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SummaryMetric("일정", "${itineraryCount}개", Modifier.weight(1f))
+                    SummaryMetric("준비", "${preparationPercent}% 완료", Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SummaryMetric("짐", "${packingPercent}% 챙김", Modifier.weight(1f))
+                    SummaryMetric("예약", "${reservations.size}개", Modifier.weight(1f))
+                }
             }
         }
         val reservation = reservations.firstOrNull()
@@ -655,7 +662,7 @@ private fun TripSummary(
 }
 
 @Composable
-private fun SummaryMetric(label: String, value: String) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+private fun SummaryMetric(label: String, value: String, modifier: Modifier = Modifier) = Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
     Text(label, style = MaterialTheme.typography.bodyLarge)
     Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
 }
@@ -929,6 +936,7 @@ private fun ChecklistRow(
     onChecked: () -> Unit,
     onSkip: (() -> Unit)?,
     onDelete: () -> Unit,
+    interaction: TripInteractionState = TripInteractionState.IDLE,
 ) = Column(
     Modifier
         .fillMaxWidth()
@@ -936,17 +944,55 @@ private fun ChecklistRow(
     verticalArrangement = Arrangement.spacedBy(2.dp),
 ) {
     Row(verticalAlignment = Alignment.Top) {
-        Checkbox(checked = checked, onCheckedChange = { onChecked() })
+        Checkbox(checked = checked, onCheckedChange = { onChecked() }, enabled = interaction != TripInteractionState.DISABLED)
         Spacer(Modifier.width(6.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(detail, style = MaterialTheme.typography.bodySmall)
-            Text(state, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Interaction state rides on the utility line so color is never the
+            // only signal: LOADING swaps the sentence, ERROR recolors it (hallmark-guide.md §3).
+            val stateText = when (interaction) {
+                TripInteractionState.LOADING -> "확인 중…"
+                else -> state
+            }
+            val stateColor = when (interaction) {
+                TripInteractionState.ERROR -> MaterialTheme.colorScheme.error
+                TripInteractionState.SUCCESS -> MaterialTheme.colorScheme.onSecondaryContainer
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            Text(stateText, style = MaterialTheme.typography.labelMedium, color = stateColor)
         }
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
         onSkip?.let { TextButton(onClick = it) { Text("건너뜀") } }
         TextButton(onClick = onDelete) { Text("삭제") }
+    }
+}
+
+/** Eight-state showcase for the readiness ChecklistRow (hallmark-guide.md §3). */
+@Preview(showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun ChecklistRowStatesShowcase() {
+    TripPilotTheme {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("ChecklistRow — 8 states", style = MaterialTheme.typography.titleMedium)
+            TripInteractionState.entries.forEach { state ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(state.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ChecklistRow(
+                        title = "체크카드 해외결제 확인",
+                        group = "결제·현금",
+                        detail = "카드사 앱에서 해외 결제 허용을 확인합니다",
+                        state = "직접 확인 필요",
+                        checked = state == TripInteractionState.SUCCESS || state == TripInteractionState.SELECTED,
+                        onChecked = {},
+                        onSkip = {},
+                        onDelete = {},
+                        interaction = state,
+                    )
+                }
+            }
+        }
     }
 }
 

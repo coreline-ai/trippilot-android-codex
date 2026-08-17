@@ -43,6 +43,7 @@ import io.trippilot.app.core.data.db.ReservationEntity
 import io.trippilot.app.core.data.db.SourceEvidenceEntity
 import io.trippilot.app.core.data.db.TripEntity
 import io.trippilot.app.core.design.ConfirmActionSheet
+import io.trippilot.app.core.design.TripInteractionState
 import io.trippilot.app.core.design.TripPilotActionShape
 import io.trippilot.app.core.design.BriefingPanel
 import io.trippilot.app.core.external.ExternalHandoff
@@ -76,6 +77,7 @@ fun ExternalActionsSection(
 ) {
     val context = LocalContext.current
     val actions by externalViewModel.observeCalendarActions(trip.id).collectAsState(emptyList())
+    val calendarWriting by externalViewModel.calendarWriting.collectAsState()
     val reminder by externalViewModel.observeReminder(trip.id).collectAsState(initial = null)
     val fileWrite by fileViewModel.writeRequest.collectAsState()
     val importReview by fileViewModel.importReview.collectAsState()
@@ -86,6 +88,18 @@ fun ExternalActionsSection(
     var showBackupImportReview by remember { mutableStateOf(false) }
     var showReminderReview by remember { mutableStateOf<Boolean?>(null) }
     var handoff by remember { mutableStateOf<HandoffRequest?>(null) }
+    // A failed handoff keeps its approval sheet open in the ERROR state so the
+    // user can read the reason and retry; color is never the only signal.
+    var handoffFailed by remember { mutableStateOf(false) }
+    // Close the Calendar sheet once the in-flight write settles.
+    var sawCalendarWriting by remember { mutableStateOf(false) }
+    LaunchedEffect(calendarWriting) {
+        if (calendarWriting) sawCalendarWriting = true
+        else if (sawCalendarWriting) {
+            sawCalendarWriting = false
+            showCalendarReview = false
+        }
+    }
 
     val calendarPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
         val granted = grants[Manifest.permission.READ_CALENDAR] == true && grants[Manifest.permission.WRITE_CALENDAR] == true
@@ -163,10 +177,13 @@ fun ExternalActionsSection(
             confirmLabel = if (permissionGranted) "선택한 일정 추가" else "Calendar 권한 요청",
             onDismiss = { showCalendarReview = false },
             onConfirm = {
-                showCalendarReview = false
                 if (permissionGranted) externalViewModel.writeSelectedToCalendar(trip, selectedItinerary)
-                else calendarPermission.launch(arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
+                else {
+                    showCalendarReview = false
+                    calendarPermission.launch(arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
+                }
             },
+            confirmState = if (calendarWriting) TripInteractionState.LOADING else TripInteractionState.IDLE,
         )
     }
     if (showIcsReview) ConfirmActionSheet(
@@ -211,14 +228,30 @@ fun ExternalActionsSection(
         },
     ) }
     handoff?.let { request -> ConfirmActionSheet(
-        title = request.title, body = request.body, confirmLabel = "외부 앱으로 열기", onDismiss = { handoff = null }, onConfirm = {
+        title = request.title,
+        body = if (handoffFailed) "외부 앱을 열지 못했습니다. 대상을 다시 시도할 수 있습니다.\n${request.body}" else request.body,
+        confirmLabel = if (handoffFailed) "다시 시도" else "외부 앱으로 열기",
+        onDismiss = {
             handoff = null
+            handoffFailed = false
+        },
+        onConfirm = {
             val result = when (request) {
                 is HandoffRequest.Map -> ExternalHandoff.openMap(context, request.place)
                 is HandoffRequest.Link -> ExternalHandoff.openWebLink(context, request.url)
             }
-            result.onFailure { onMessage(it.message ?: "외부 앱을 열지 못했습니다.") }
+            result.fold(
+                onSuccess = {
+                    handoff = null
+                    handoffFailed = false
+                },
+                onFailure = {
+                    handoffFailed = true
+                    onMessage(it.message ?: "외부 앱을 열지 못했습니다.")
+                },
+            )
         },
+        confirmState = if (handoffFailed) TripInteractionState.ERROR else TripInteractionState.IDLE,
     ) }
 }
 
