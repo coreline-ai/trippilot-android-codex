@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TOKENS = ROOT / "design" / "tokens.json"
 MANIFEST = ROOT / "docs" / "asset-manifest.md"
 SCREEN_MAP = ROOT / "design" / "screen-map.md"
+APP_MANIFEST = ROOT / "app" / "src" / "main" / "AndroidManifest.xml"
 REQUIRED_DOCS = (
     ROOT / "design" / "design-direction.md",
     ROOT / "design" / "tokens.md",
@@ -32,6 +33,15 @@ REQUIRED_ASSETS = (
     "ai-connection-required.svg",
 )
 PARITY_IDS = tuple(f"PAR-{index:02d}" for index in range(1, 18))
+LAUNCHER_RESOURCES = (
+    "app/src/main/res/values/colors.xml",
+    "app/src/main/res/drawable/ic_launcher_foreground.xml",
+    "app/src/main/res/drawable/ic_launcher_monochrome.xml",
+    "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+    "app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+)
 
 
 def relative_luminance(hex_color: str) -> float:
@@ -93,6 +103,25 @@ def main() -> None:
         if digest not in manifest:
             fail(f"asset hash is absent or stale in manifest: {relative_path}")
         print(f"PASS: manifest registration and local-only source for {relative_path}")
+
+    app_manifest = APP_MANIFEST.read_text(encoding="utf-8")
+    for marker in ('android:icon="@mipmap/ic_launcher"', 'android:roundIcon="@mipmap/ic_launcher_round"'):
+        if marker not in app_manifest:
+            fail(f"AndroidManifest launcher contract missing: {marker}")
+    for relative_path in LAUNCHER_RESOURCES:
+        resource = ROOT / relative_path
+        if not resource.is_file():
+            fail(f"launcher resource is missing: {relative_path}")
+    foreground = (ROOT / LAUNCHER_RESOURCES[1]).read_text(encoding="utf-8")
+    monochrome = (ROOT / LAUNCHER_RESOURCES[2]).read_text(encoding="utf-8")
+    themed = (ROOT / "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml").read_text(encoding="utf-8")
+    if not all(marker in foreground for marker in ('android:width="108dp"', 'android:height="108dp"', 'android:viewportWidth="108"', 'android:viewportHeight="108"')):
+        fail("launcher foreground must use the Android 108dp adaptive-icon canvas")
+    if "#10243F" not in (ROOT / LAUNCHER_RESOURCES[0]).read_text(encoding="utf-8"):
+        fail("launcher background must use Pilot Navy")
+    if "<monochrome" not in themed or "#FFFFFFFF" not in monochrome:
+        fail("Android 13+ launcher icon must provide a single-color monochrome layer")
+    print("PASS: adaptive launcher foreground/background/round/monochrome resources")
 
     screen_map = SCREEN_MAP.read_text(encoding="utf-8")
     for parity_id in PARITY_IDS:

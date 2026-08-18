@@ -10,7 +10,9 @@
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:forceDarkAllowed="false"
+        android:icon="@mipmap/ic_launcher"
         android:label="TripPilot"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TripPilot"
         android:usesCleartextTraffic="false">

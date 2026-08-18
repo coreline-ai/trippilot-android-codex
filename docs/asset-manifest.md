@@ -4,7 +4,7 @@
 
 | 파일 | 용도 | source URL / 생성 방식 | License | Author | Modification | SHA-256 | 승인일 | Android target |
 |---|---|---|---|---|---|---|---|---|
-| `design/assets/app-mark.svg` | adaptive icon foreground / wordmark seed | TripPilot 팀 자체 제작, 2026-08-16 | Proprietary to TripPilot project | TripPilot | original | `b43fb22a4a3a7f9bc828566c28e0b6986ffc7de8b288aa71fe7bc589f5adecd2` | 2026-08-16 | `mipmap-anydpi-v26` VectorDrawable로 변환 |
+| `design/assets/app-mark.svg` | adaptive icon foreground / wordmark seed | TripPilot 팀 자체 제작, 2026-08-16 | Proprietary to TripPilot project | TripPilot | 108dp safe-zone adaptive foreground·solid background·Android 13+ monochrome layer로 변환 | `b43fb22a4a3a7f9bc828566c28e0b6986ffc7de8b288aa71fe7bc589f5adecd2` | 2026-08-18 | `drawable/ic_launcher_foreground.xml`, `drawable/ic_launcher_monochrome.xml`, `mipmap-anydpi-v26/v33/ic_launcher*.xml` |
 | `design/assets/route-ribbon.svg` | RouteRibbon source reference | TripPilot 팀 자체 제작, 2026-08-16 | Proprietary to TripPilot project | TripPilot | original | `ab3102ed7af30defbd38f4585c9437a34c0d35abf01d4e444fbc6fc3341eb1a7` | 2026-08-16 | Compose `RouteRibbon` path reference |
 | `design/assets/empty-trips.svg` | 여행 없음 empty state | TripPilot 팀 자체 제작, 2026-08-16 | Proprietary to TripPilot project | TripPilot | original | `4380ac973cc2006bc570e820984c97f9c3d1ef2ee23b629bd6db8ac7e9ac7f49` | 2026-08-16 | `drawable/empty_trips.xml`로 변환 |
 | `design/assets/empty-itinerary.svg` | 일정 없음 empty state | TripPilot 팀 자체 제작, 2026-08-16 | Proprietary to TripPilot project | TripPilot | original | `da8dd094a3de096b5e2246c52b99d540bba888a90a979f6a421b65735998943c` | 2026-08-16 | `drawable/empty_itinerary.xml`로 변환 |

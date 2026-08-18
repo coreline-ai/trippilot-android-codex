@@ -5,7 +5,7 @@
     {
       "id": "app-mark",
       "source": "design/assets/app-mark.svg",
-      "runtime": null,
+      "runtime": "app/src/main/res/drawable/ic_launcher_foreground.xml",
       "kind": "vector-source"
     },
     {
