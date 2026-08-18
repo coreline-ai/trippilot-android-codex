@@ -6,7 +6,9 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import io.trippilot.app.core.model.CalendarActionStatus
 import io.trippilot.app.core.model.ItemOrigin
+import io.trippilot.app.core.model.PostTripWindow
 import io.trippilot.app.core.model.PreparationStatus
+import io.trippilot.app.core.model.SafetyCategory
 import io.trippilot.app.core.model.RecheckResult
 import io.trippilot.app.core.model.ReservationStatus
 import io.trippilot.app.core.model.SourceOwnerType
@@ -69,6 +71,8 @@ data class PreparationItemEntity(
     val origin: ItemOrigin,
     val createdAtEpochMs: Long,
     val templateId: String? = null,
+    // Null keeps pre-trip/general items unchanged; post-trip pack items carry a window.
+    val postTripWindow: PostTripWindow? = null,
 )
 
 @Entity(
@@ -196,4 +200,31 @@ data class PendingReservationShareEntity(
     val sharedText: String,
     val createdAtEpochMs: Long,
     val expiresAtEpochMs: Long,
+)
+
+/**
+ * User-owned local safety memo for problem response. Never mixed with static
+ * catalog guidance, never sent to AI prompts, and only copied out or opened
+ * externally after an explicit approval.
+ */
+@Entity(
+    tableName = "safety_memos",
+    foreignKeys = [ForeignKey(
+        entity = TripEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["tripId"],
+        onDelete = ForeignKey.CASCADE,
+    )],
+    indices = [Index("tripId")],
+)
+data class SafetyMemoEntity(
+    @PrimaryKey val id: String,
+    val tripId: String,
+    val category: SafetyCategory,
+    val title: String,
+    val note: String,
+    val contactLabel: String?,
+    val contactValue: String?,
+    val createdAtEpochMs: Long,
+    val updatedAtEpochMs: Long,
 )

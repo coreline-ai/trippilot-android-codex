@@ -143,6 +143,25 @@ class TripViewModel @Inject constructor(
         repository.applyMissingScopeDefaults(tripId, scope)
         mutableMessage.emit("누락된 기본 항목만 추가했습니다.")
     }
+    // Stable per-trip flow: recreating the cold Room flow on every recomposition
+    // can resubscribe past an invalidation and leave a just-inserted memo invisible.
+    private val safetyMemoFlows = mutableMapOf<String, kotlinx.coroutines.flow.Flow<List<io.trippilot.app.core.data.db.SafetyMemoEntity>>>()
+    fun observeSafetyMemos(tripId: String): kotlinx.coroutines.flow.Flow<List<io.trippilot.app.core.data.db.SafetyMemoEntity>> =
+        safetyMemoFlows.getOrPut(tripId) { repository.observeSafetyMemos(tripId) }
+    fun addSafetyMemo(tripId: String, category: io.trippilot.app.core.model.SafetyCategory, title: String, note: String, contactLabel: String?, contactValue: String?) = viewModelScope.launch {
+        report(repository.addSafetyMemo(tripId, category, title, note, contactLabel, contactValue))
+    }
+    fun updateSafetyMemo(memo: io.trippilot.app.core.data.db.SafetyMemoEntity) = viewModelScope.launch { report(repository.updateSafetyMemo(memo)) }
+    fun deleteSafetyMemo(memoId: String) = viewModelScope.launch { repository.deleteSafetyMemo(memoId) }
+    fun addSafetyMemoSource(memoId: String, tripId: String, title: String, url: String) = viewModelScope.launch {
+        report(repository.addSafetyMemoSource(memoId, tripId, title, url))
+    }
+    fun applyPostTripPack(tripId: String, window: io.trippilot.app.core.model.PostTripWindow) = viewModelScope.launch {
+        repository.applyPostTripPack(tripId, window)
+    }
+    fun addPostTripPreparation(tripId: String, title: String, window: io.trippilot.app.core.model.PostTripWindow) = viewModelScope.launch {
+        report(repository.addPostTripPreparation(tripId, title, window))
+    }
     fun applyOptionalReadinessPack(tripId: String, scope: TravelScope, group: ChecklistGroup) = viewModelScope.launch {
         repository.applyOptionalReadinessPack(tripId, scope, group)
         mutableMessage.emit("${group.label} 선택 팩의 누락 항목만 추가했습니다.")

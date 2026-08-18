@@ -8,6 +8,7 @@ import io.trippilot.app.core.data.db.PendingReservationShareEntity
 import io.trippilot.app.core.data.db.PreparationItemEntity
 import io.trippilot.app.core.data.db.ReservationEntity
 import io.trippilot.app.core.data.db.ReadinessReminderEntity
+import io.trippilot.app.core.data.db.SafetyMemoEntity
 import io.trippilot.app.core.data.db.SourceEvidenceEntity
 import io.trippilot.app.core.data.db.TripDao
 import io.trippilot.app.core.data.db.TripEntity
@@ -233,6 +234,36 @@ class TripRepository @Inject constructor(
         }
     }
 
+    /** Applies one post-trip window pack; idempotent by stable template ID and never forced. */
+    suspend fun applyPostTripPack(tripId: String, window: io.trippilot.app.core.model.PostTripWindow) {
+        database.withTransaction {
+            addMissingTemplateItems(
+                tripId = tripId,
+                scope = io.trippilot.app.core.model.TravelScope.AUTO,
+                now = System.currentTimeMillis(),
+                templates = ReadinessTemplateCatalog.postTripItems(window),
+            )
+        }
+    }
+
+    /** Manual post-trip item with an explicit window; user-owned like any manual row. */
+    suspend fun addPostTripPreparation(tripId: String, title: String, window: io.trippilot.app.core.model.PostTripWindow): ValidationResult {
+        val normalized = title.trim()
+        if (normalized.isEmpty()) return ValidationResult.Invalid("항목 이름을 입력하세요.")
+        dao.insertPreparation(
+            PreparationItemEntity(
+                id = UUID.randomUUID().toString(),
+                tripId = tripId,
+                title = normalized,
+                status = PreparationStatus.TODO,
+                origin = ItemOrigin.MANUAL,
+                createdAtEpochMs = System.currentTimeMillis(),
+                postTripWindow = window,
+            ),
+        )
+        return ValidationResult.Valid
+    }
+
     private suspend fun addMissingTemplateItems(
         tripId: String,
         scope: io.trippilot.app.core.model.TravelScope,
@@ -249,6 +280,7 @@ class TripRepository @Inject constructor(
                         id = UUID.randomUUID().toString(), tripId = tripId, title = item.title,
                         status = PreparationStatus.TODO, origin = ItemOrigin.DEFAULT, createdAtEpochMs = now,
                         templateId = item.id.name,
+                        postTripWindow = item.postTripWindow,
                     ),
                 )
                 ChecklistType.PACKING -> if (existingPacking.none { it.templateId == item.id.name || it.title.trim().equals(item.title, ignoreCase = true) }) dao.insertPacking(
@@ -556,14 +588,18 @@ class TripRepository @Inject constructor(
                 title = trip.title, destination = trip.destination, startDate = trip.startDate, endDate = trip.endDate,
                 timezone = trip.timezone, scope = trip.scope.name, notes = trip.notes,
                 itinerary = itinerary.map { TripBackupItinerary(it.date, it.startMinute, it.title, it.location, it.notes) },
-                preparation = preparation.map { TripBackupPreparation(it.title, it.status.name, it.origin.name, it.templateId) },
+                preparation = preparation.map { TripBackupPreparation(it.title, it.status.name, it.origin.name, it.templateId, it.postTripWindow?.name) },
                 packing = packing.map { TripBackupPacking(it.title, it.quantity, it.isPacked, it.origin.name, it.templateId) },
                 reservations = reservations.map { TripBackupReservation(it.type, it.provider, it.confirmationCode, it.dateTime, it.location, it.url, it.status.name, it.notes) },
                 sources = dao.observeSources(trip.id).first().mapNotNull { source ->
                     when (source.ownerType) {
                         SourceOwnerType.ITINERARY -> itineraryIndex[source.ownerId]?.let { TripBackupSource("ITINERARY", it, source.url, source.title) }
                         SourceOwnerType.RESERVATION -> reservationIndex[source.ownerId]?.let { TripBackupSource("RESERVATION", it, source.url, source.title) }
+                        SourceOwnerType.SAFETY_MEMO -> null // Safety-memo sources are re-linked by the user after restore.
                     }
+                },
+                safetyMemos = dao.safetyMemosForTrip(trip.id).map { memo ->
+                    TripBackupSafetyMemo(memo.category.name, memo.title, memo.note, memo.contactLabel, memo.contactValue)
                 },
             )
         })
@@ -598,6 +634,24 @@ class TripRepository @Inject constructor(
                             ItemOrigin.valueOf(item.origin),
                             now,
                             item.templateId,
+                            item.postTripWindow?.let { window ->
+                                io.trippilot.app.core.model.PostTripWindow.valueOf(window)
+                            },
+                        ),
+                    )
+                }
+                backup.safetyMemos.forEach { memo ->
+                    dao.insertSafetyMemo(
+                        SafetyMemoEntity(
+                            UUID.randomUUID().toString(),
+                            tripId,
+                            io.trippilot.app.core.model.SafetyCategory.valueOf(memo.category),
+                            memo.title.trim(),
+                            memo.note.trim(),
+                            memo.contactLabel?.trim()?.ifBlank { null },
+                            memo.contactValue?.trim()?.ifBlank { null },
+                            now,
+                            now,
                         ),
                     )
                 }
@@ -626,6 +680,62 @@ class TripRepository @Inject constructor(
     }
 
     suspend fun deleteTrip(tripId: String) = dao.deleteTrip(tripId)
+
+    fun observeSafetyMemos(tripId: String): Flow<List<SafetyMemoEntity>> = dao.observeSafetyMemos(tripId)
+
+    suspend fun addSafetyMemo(
+        tripId: String,
+        category: io.trippilot.app.core.model.SafetyCategory,
+        title: String,
+        note: String,
+        contactLabel: String?,
+        contactValue: String?,
+    ): ValidationResult {
+        if (title.trim().isEmpty()) return ValidationResult.Invalid("안전 메모 제목을 입력하세요.")
+        if (note.length > TripBackupCodec.MAX_SAFETY_NOTE_LENGTH) return ValidationResult.Invalid("메모가 너무 깁니다.")
+        if ((contactValue ?: "").length > TripBackupCodec.MAX_CONTACT_VALUE_LENGTH) return ValidationResult.Invalid("연락값이 너무 깁니다.")
+        val now = System.currentTimeMillis()
+        dao.insertSafetyMemo(
+            SafetyMemoEntity(
+                UUID.randomUUID().toString(), tripId, category, title.trim(), note.trim(),
+                contactLabel?.trim()?.ifBlank { null }, contactValue?.trim()?.ifBlank { null }, now, now,
+            ),
+        )
+        return ValidationResult.Valid
+    }
+
+    suspend fun updateSafetyMemo(memo: SafetyMemoEntity): ValidationResult {
+        if (memo.title.trim().isEmpty()) return ValidationResult.Invalid("안전 메모 제목을 입력하세요.")
+        if (memo.note.length > TripBackupCodec.MAX_SAFETY_NOTE_LENGTH) return ValidationResult.Invalid("메모가 너무 깁니다.")
+        if ((memo.contactValue ?: "").length > TripBackupCodec.MAX_CONTACT_VALUE_LENGTH) return ValidationResult.Invalid("연락값이 너무 깁니다.")
+        // Sources linked to a memo survive an edit; only deletion clears them.
+        dao.updateSafetyMemo(memo.id, memo.category, memo.title.trim(), memo.note.trim(), memo.contactLabel?.trim()?.ifBlank { null }, memo.contactValue?.trim()?.ifBlank { null }, System.currentTimeMillis())
+        return ValidationResult.Valid
+    }
+
+    /** Deletes a memo and its linked sources in one transaction. */
+    suspend fun deleteSafetyMemo(memoId: String) = database.withTransaction {
+        dao.deleteSourcesForOwner(SourceOwnerType.SAFETY_MEMO, memoId)
+        dao.deleteSafetyMemo(memoId)
+    }
+
+    suspend fun addSafetyMemoSource(memoId: String, tripId: String, title: String, url: String): ValidationResult {
+        if (TravelValidators.url(url) is ValidationResult.Invalid) return ValidationResult.Invalid("출처 URL이 올바르지 않습니다.")
+        if (title.trim().isEmpty()) return ValidationResult.Invalid("출처 제목을 입력하세요.")
+        if (dao.sourceCount(SourceOwnerType.SAFETY_MEMO, memoId) >= 3) {
+            return ValidationResult.Invalid("안전 메모당 출처는 최대 3개입니다.")
+        }
+        if (dao.sourceUrlCount(SourceOwnerType.SAFETY_MEMO, memoId, url.trim()) > 0) {
+            return ValidationResult.Invalid("같은 안전 메모에 이미 있는 출처 URL입니다.")
+        }
+        dao.insertSource(
+            SourceEvidenceEntity(
+                id = UUID.randomUUID().toString(), tripId = tripId, ownerType = SourceOwnerType.SAFETY_MEMO,
+                ownerId = memoId, url = url.trim(), title = title.trim(), lastCheckedAtEpochMs = null,
+            ),
+        )
+        return ValidationResult.Valid
+    }
 }
 
 sealed interface DraftApplyResult {

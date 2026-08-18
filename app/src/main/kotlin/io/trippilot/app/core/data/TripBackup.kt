@@ -15,7 +15,7 @@ import kotlinx.serialization.json.jsonPrimitive
 @Serializable
 data class TripBackupDocument(
     val schema: String = "trippilot.trip-backup",
-    val version: Int = 2,
+    val version: Int = 3,
     val trips: List<TripBackupTrip>,
 )
 
@@ -33,6 +33,7 @@ data class TripBackupTrip(
     val packing: List<TripBackupPacking> = emptyList(),
     val reservations: List<TripBackupReservation> = emptyList(),
     val sources: List<TripBackupSource> = emptyList(),
+    val safetyMemos: List<TripBackupSafetyMemo> = emptyList(),
 )
 
 @Serializable
@@ -50,6 +51,7 @@ data class TripBackupPreparation(
     val status: String,
     val origin: String,
     val templateId: String? = null,
+    val postTripWindow: String? = null,
 )
 
 @Serializable
@@ -82,6 +84,16 @@ data class TripBackupSource(
     val title: String,
 )
 
+/** User-owned local safety memo; contact values stay within the documented size limits. */
+@Serializable
+data class TripBackupSafetyMemo(
+    val category: String,
+    val title: String,
+    val note: String,
+    val contactLabel: String? = null,
+    val contactValue: String? = null,
+)
+
 /**
  * Narrow, public-field-only compatibility reader. It intentionally contains no
  * database, account, chat, secret, or OAuth field and creates no link to
@@ -99,6 +111,9 @@ object TripBackupCodec {
     const val MAX_BYTES = 2 * 1024 * 1024
     const val MAX_TRIPS = 100
     const val MAX_ITEMS_PER_TRIP = 500
+    const val MAX_SAFETY_MEMOS_PER_TRIP = 200
+    const val MAX_CONTACT_VALUE_LENGTH = 200
+    const val MAX_SAFETY_NOTE_LENGTH = 2000
     const val SCHEMA = "trippilot.trip-backup"
     private const val LEGACY_SCHEMA = "openminis.trip-backup"
     private val json = Json { ignoreUnknownKeys = false; encodeDefaults = true }
@@ -153,7 +168,7 @@ object TripBackupCodec {
 
     private fun validate(document: TripBackupDocument): TripBackupDocument {
         require(document.schema == SCHEMA) { "지원하지 않는 백업 schema입니다." }
-        require(document.version in 1..2) { "지원하지 않는 백업 버전입니다." }
+        require(document.version in 1..3) { "지원하지 않는 백업 버전입니다." }
         require(document.trips.size <= MAX_TRIPS) { "여행 수 제한을 초과합니다." }
         document.trips.forEach {
             require(it.title.isNotBlank() && it.destination.isNotBlank()) { "백업 여행 제목과 목적지가 필요합니다." }
@@ -172,6 +187,7 @@ object TripBackupCodec {
             it.preparation.forEach { item ->
                 require(item.title.isNotBlank() && item.status in io.trippilot.app.core.model.PreparationStatus.entries.map { status -> status.name } && item.origin in io.trippilot.app.core.model.ItemOrigin.entries.map { origin -> origin.name }) { "백업 준비 항목 값이 올바르지 않습니다." }
                 require(ReadinessTemplateCatalog.isKnownTemplateId(item.templateId)) { "백업 준비 항목 templateId가 올바르지 않습니다." }
+                require(item.postTripWindow == null || item.postTripWindow in io.trippilot.app.core.model.PostTripWindow.entries.map { window -> window.name }) { "백업 준비 항목 귀국 후 시점이 올바르지 않습니다." }
             }
             it.packing.forEach { item ->
                 require(item.title.isNotBlank() && item.quantity >= 1 && item.origin in io.trippilot.app.core.model.ItemOrigin.entries.map { origin -> origin.name }) { "백업 짐 항목 값이 올바르지 않습니다." }
@@ -184,6 +200,13 @@ object TripBackupCodec {
             it.sources.forEach { item ->
                 val ownerLimit = if (item.ownerType == "ITINERARY") it.itinerary.size else if (item.ownerType == "RESERVATION") it.reservations.size else -1
                 require(item.ownerIndex in 0 until ownerLimit && item.title.isNotBlank() && TravelValidators.url(item.url).isValid()) { "백업 출처 값이 올바르지 않습니다." }
+            }
+            require(it.safetyMemos.size <= MAX_SAFETY_MEMOS_PER_TRIP) { "백업 안전 메모 수 제한을 초과합니다." }
+            it.safetyMemos.forEach { memo ->
+                require(memo.category in io.trippilot.app.core.model.SafetyCategory.entries.map { category -> category.name }) { "백업 안전 메모 분류가 올바르지 않습니다." }
+                require(memo.title.isNotBlank()) { "백업 안전 메모 제목이 필요합니다." }
+                require(memo.note.length <= MAX_SAFETY_NOTE_LENGTH) { "백업 안전 메모 길이 제한을 초과합니다." }
+                memo.contactValue?.let { value -> require(value.length <= MAX_CONTACT_VALUE_LENGTH) { "백업 안전 메모 연락값 길이 제한을 초과합니다." } }
             }
         }
         return document

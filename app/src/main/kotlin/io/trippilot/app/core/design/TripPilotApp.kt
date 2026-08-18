@@ -29,6 +29,10 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -62,13 +66,17 @@ import io.trippilot.app.core.data.db.PreparationItemEntity
 import io.trippilot.app.core.data.db.ReservationEntity
 import io.trippilot.app.core.data.db.SourceEvidenceEntity
 import io.trippilot.app.core.data.db.TripEntity
+import io.trippilot.app.core.data.db.SafetyMemoEntity
 import io.trippilot.app.core.model.ItemOrigin
 import io.trippilot.app.core.model.ChecklistGroup
 import io.trippilot.app.core.model.ChecklistType
 import io.trippilot.app.core.model.CompletionPolicy
+import io.trippilot.app.core.model.PostTripWindow
 import io.trippilot.app.core.model.PreparationStatus
+import io.trippilot.app.core.model.ProblemResponseCatalog
 import io.trippilot.app.core.model.RecheckResult
 import io.trippilot.app.core.model.ReservationStatus
+import io.trippilot.app.core.model.SafetyCategory
 import io.trippilot.app.core.model.SourceOwnerType
 import io.trippilot.app.core.model.TravelScope
 import io.trippilot.app.core.model.ReadinessTemplateCatalog
@@ -404,6 +412,12 @@ private fun TripDetailScreen(
     var sourceEdit by remember { mutableStateOf<SourceEvidenceEntity?>(null) }
     var recheckSource by remember { mutableStateOf<SourceEvidenceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<String?>(null) }
+    var postTripAddWindow by remember { mutableStateOf<PostTripWindow?>(null) }
+    var showSafetyHub by remember(trip.id) { mutableStateOf(false) }
+    var safetyMemoEdit by remember { mutableStateOf<SafetyMemoEntity?>(null) }
+    var showSafetyMemoAdd by remember { mutableStateOf(false) }
+    var deleteSafetyMemoTarget by remember { mutableStateOf<String?>(null) }
+    val safetyMemos by viewModel.observeSafetyMemos(trip.id).collectAsState(emptyList())
 
     val stages = remember(trip, itinerary, preparation, packing) {
         journeyStages(trip, itinerary, preparation, packing)
@@ -487,6 +501,8 @@ private fun TripDetailScreen(
                     onTogglePacking = viewModel::togglePacking,
                     onDeletePreparation = viewModel::deletePreparation,
                     onDeletePacking = viewModel::deletePacking,
+                    onApplyPostTripPack = { window -> viewModel.applyPostTripPack(trip.id, window) },
+                    onAddPostTrip = { window -> postTripAddWindow = window },
                 )
                 TripArea.STORAGE -> {
                     Column(Modifier.fillMaxSize()) {
@@ -498,11 +514,39 @@ private fun TripDetailScreen(
                     }
                 }
                 TripArea.HELP -> {
-                    Column(Modifier.fillMaxSize()) {
-                        SubPageNavigation(HelpPage.entries.toList(), helpPage, { helpPage = it }, { it.label }, { it.name.lowercase() }, "help", Modifier.padding(horizontal = 20.dp))
-                        when (helpPage) {
-                            HelpPage.DRAFTS -> DraftPlannerSection(trip, draftViewModel)
-                            HelpPage.EXTERNAL -> ExternalActionsSection(trip, itinerary, reservations, sources, externalViewModel, fileViewModel, onMessage)
+                    if (showSafetyHub) {
+                        SafetyHubScreen(
+                            trip = trip,
+                            memos = safetyMemos,
+                            sources = sources,
+                            onBack = { showSafetyHub = false },
+                            onAdd = { showSafetyMemoAdd = true },
+                            onEdit = { safetyMemoEdit = it },
+                            onDelete = { deleteSafetyMemoTarget = it },
+                        )
+                    } else {
+                        Column(Modifier.fillMaxSize()) {
+                            // The safety entry panel stays above the two sub-tabs and
+                            // never becomes a third tab (gap doc §4).
+                            BriefingPanel(
+                                kind = "status",
+                                eyebrow = "문제 발생 시",
+                                title = "문제 대응 · 안전 메모",
+                                body = "여행 중 문제가 생기면 일반형 대응 순서와 사용자가 저장한 연락 정보를 오프라인에서 확인합니다.",
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                action = {
+                                    OutlinedButton(
+                                        onClick = { showSafetyHub = true },
+                                        modifier = Modifier.testTag("safety_hub_entry"),
+                                        shape = TripPilotActionShape,
+                                    ) { Text("Safety Hub 열기") }
+                                },
+                            )
+                            SubPageNavigation(HelpPage.entries.toList(), helpPage, { helpPage = it }, { it.label }, { it.name.lowercase() }, "help", Modifier.padding(horizontal = 20.dp))
+                            when (helpPage) {
+                                HelpPage.DRAFTS -> DraftPlannerSection(trip, draftViewModel)
+                                HelpPage.EXTERNAL -> ExternalActionsSection(trip, itinerary, reservations, sources, externalViewModel, fileViewModel, onMessage)
+                            }
                         }
                     }
                 }
@@ -545,6 +589,22 @@ private fun TripDetailScreen(
             deleteTarget = null
         },
     ) }
+    postTripAddWindow?.let { window -> SimpleTextDialog("귀국 후 항목 추가", postTripWindowLabel(window), { postTripAddWindow = null }) { title ->
+        viewModel.addPostTripPreparation(trip.id, title, window); postTripAddWindow = null
+    } }
+    if (showSafetyMemoAdd) SafetyMemoDialog(trip.id, null, { showSafetyMemoAdd = false }) { tripId, category, title, note, contactLabel, contactValue ->
+        viewModel.addSafetyMemo(tripId, category, title, note, contactLabel, contactValue); showSafetyMemoAdd = false
+    }
+    safetyMemoEdit?.let { memo -> SafetyMemoDialog(trip.id, memo, { safetyMemoEdit = null }) { _, category, title, note, contactLabel, contactValue ->
+        viewModel.updateSafetyMemo(memo.copy(category = category, title = title, note = note, contactLabel = contactLabel, contactValue = contactValue)); safetyMemoEdit = null
+    } }
+    deleteSafetyMemoTarget?.let { memoId -> ConfirmActionSheet(
+        title = "안전 메모를 삭제할까요?",
+        body = "이 메모에 연결한 출처도 함께 삭제됩니다. 다른 기록은 변경되지 않습니다.",
+        confirmLabel = "삭제", onDismiss = { deleteSafetyMemoTarget = null }, onConfirm = {
+            viewModel.deleteSafetyMemo(memoId); deleteSafetyMemoTarget = null
+        },
+    ) }
 }
 
 @Composable
@@ -564,9 +624,24 @@ private fun TripSummary(
 ) {
     val preparationPercent = preparationRate(preparation)
     val packingPercent = packingRate(packing)
-    val readinessPending = preparation.count { it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED } +
+    val readinessPending = preparation.count { it.postTripWindow == null && it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED } +
         packing.count { !it.isPacked }
+    // After the end date the briefing points at the post-trip windows the user
+    // opted into; an unselected pack stays an offer, never an "incomplete" state.
+    val tripEnded = runCatching { LocalDate.now().isAfter(LocalDate.parse(trip.endDate)) }.getOrDefault(false)
+    val postTripItems = preparation.filter { it.postTripWindow != null }
+    val postTripPending = postTripItems.count { it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED }
     val nextAction = when {
+        tripEnded && postTripItems.isNotEmpty() && postTripPending > 0 -> Triple(
+            "귀국 후 정리를 확인하세요",
+            "귀국 후 항목 ${postTripPending}개가 아직 남아 있습니다.",
+            onOpenPrepare,
+        )
+        tripEnded -> Triple(
+            "귀국 후 팩을 준비하세요",
+            "48시간·1주·나중 시점의 선택 팩을 준비 화면에서 직접 추가합니다.",
+            onOpenPrepare,
+        )
         readinessPending > 0 -> Triple(
             "출발 전 준비를 먼저 확인하세요",
             "준비할 일과 짐에서 ${readinessPending}개가 아직 남아 있습니다.",
@@ -790,8 +865,14 @@ private fun ReadinessSection(
     onTogglePacking: (PackingItemEntity) -> Unit,
     onDeletePreparation: (String) -> Unit,
     onDeletePacking: (String) -> Unit,
+    onApplyPostTripPack: (PostTripWindow) -> Unit,
+    onAddPostTrip: (PostTripWindow) -> Unit,
 ) {
-    val preparationGroups = preparation.groupBy {
+    // Post-trip items only count toward their own window progress; the pre-trip
+    // completion rate never moves because a post-trip pack was or wasn't added.
+    val preTripPreparation = preparation.filter { it.postTripWindow == null }
+    val postTripPreparation = preparation.filter { it.postTripWindow != null }
+    val preparationGroups = preTripPreparation.groupBy {
         ReadinessTemplateCatalog.displayMetadata(ChecklistType.PREPARATION, it.templateId, it.title).group
     }
     val packingGroups = packing.groupBy {
@@ -811,7 +892,7 @@ private fun ReadinessSection(
         BriefingPanel(
             kind = "next_action",
             eyebrow = "준비 현황",
-            title = "준비 ${preparationRate(preparation)}% · 짐 ${packingRate(packing)}%",
+            title = "준비 ${preparationRate(preTripPreparation)}% · 짐 ${packingRate(packing)}%",
             body = "각 항목의 짧은 확인 이유를 보고 완료, 건너뜀, 직접 추가를 선택하세요.",
         )
         if (optionalGroups.isNotEmpty()) {
@@ -836,7 +917,7 @@ private fun ReadinessSection(
                 }
             }
         }
-        Text("준비할 일 · ${preparationRate(preparation)}%", style = MaterialTheme.typography.titleMedium)
+        Text("준비할 일 · ${preparationRate(preTripPreparation)}%", style = MaterialTheme.typography.titleMedium)
         if (preparationGroups.isEmpty()) {
             EmptyState("준비할 일이 없습니다", "직접 추가하거나 기본 준비 팩을 다시 적용해 보세요.", R.drawable.trippilot_empty_itinerary)
         } else {
@@ -866,6 +947,7 @@ private fun ReadinessSection(
             }
         }
         Text("챙길 물건 · ${packingRate(packing)}%", style = MaterialTheme.typography.titleMedium)
+        PostTripWindowSection(postTripPreparation, onApplyPostTripPack, onAddPostTrip, onTogglePreparation, onSkipPreparation, onDeletePreparation)
         if (packingGroups.isEmpty()) {
             EmptyState("챙길 물건이 없습니다", "가방에 넣을 물건을 직접 추가해 보세요.", R.drawable.trippilot_empty_itinerary)
         } else {
@@ -922,6 +1004,224 @@ private fun ChecklistGroupSection(
                 TextButton(onClick = onAdd, modifier = if (addTag == null) Modifier else Modifier.testTag(addTag)) { Text(addLabel) }
             }
             content()
+        }
+    }
+}
+
+private fun postTripWindowLabel(window: PostTripWindow): String = when (window) {
+    PostTripWindow.WITHIN_48_HOURS -> "귀국 후 48시간 이내"
+    PostTripWindow.WITHIN_ONE_WEEK -> "귀국 후 1주 이내"
+    PostTripWindow.LATER -> "귀국 후 나중에"
+}
+
+/** Offline problem-response hub. Static guidance stays visually separate from user-owned memos. */
+@Composable
+private fun SafetyHubScreen(
+    trip: TripEntity,
+    memos: List<SafetyMemoEntity>,
+    sources: List<SourceEvidenceEntity>,
+    onBack: () -> Unit,
+    onAdd: () -> Unit,
+    onEdit: (SafetyMemoEntity) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    var expandedCategory by remember { mutableStateOf<SafetyCategory?>(null) }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+            .testTag("safety_hub_screen"),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("문제 대응 · 안전 메모", style = MaterialTheme.typography.headlineSmall)
+            TextButton(onClick = onBack, modifier = Modifier.testTag("safety_hub_back")) { Text("도움으로") }
+        }
+        SurfaceNotice(
+            "긴급 서비스가 아닙니다",
+            ProblemResponseCatalog.NOT_EMERGENCY_NOTICE,
+            Modifier.testTag("safety_hub_notice"),
+        ) {}
+        Text("문제 유형별 일반 순서", style = MaterialTheme.typography.titleMedium)
+        ProblemResponseCatalog.all().forEach { category ->
+            val expanded = expandedCategory == category.id
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("safety_category_${category.id.name.lowercase()}")
+                    .semantics { contentDescription = "${category.id.label}, ${if (expanded) "단계 펼침" else "단계 접힘"}" },
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .toggleable(value = expanded, role = Role.Button, interactionSource = null, indication = null) { expandedCategory = if (expanded) null else category.id },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(category.id.label, style = MaterialTheme.typography.titleMedium)
+                        Text(if (expanded) "접기" else "펼치기", style = MaterialTheme.typography.labelLarge)
+                    }
+                    if (expanded) {
+                        category.steps.forEachIndexed { index, step ->
+                            Text("${index + 1}. $step", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+        Text("내가 저장한 연락 정보·메모", style = MaterialTheme.typography.titleMedium)
+        if (memos.isEmpty()) {
+            EmptyState("저장한 안전 메모가 없습니다", "카드사 공식 채널, 보험 연락, 숙소 연락 등을 직접 기록해 두면 오프라인에서도 확인할 수 있습니다.", R.drawable.trippilot_empty_sources)
+        } else {
+            memos.forEach { memo ->
+                val memoSources = sources.filter { it.ownerType == SourceOwnerType.SAFETY_MEMO && it.ownerId == memo.id }
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("safety_memo_${memo.id}")
+                        .semantics { contentDescription = "${memo.category.label}, ${memo.title}" },
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = MaterialTheme.shapes.large,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(memo.category.label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(memo.title, style = MaterialTheme.typography.titleMedium)
+                        if (memo.note.isNotBlank()) Text(memo.note, style = MaterialTheme.typography.bodyMedium)
+                        if (!memo.contactLabel.isNullOrBlank() || !memo.contactValue.isNullOrBlank()) {
+                            Text(
+                                listOfNotNull(memo.contactLabel, memo.contactValue).joinToString(": "),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        memoSources.forEach { source ->
+                            Text("출처 · ${source.title}", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { onEdit(memo) }, modifier = Modifier.testTag("edit_safety_memo_${memo.id}")) { Text("수정") }
+                            TextButton(onClick = { onDelete(memo.id) }, modifier = Modifier.testTag("delete_safety_memo_${memo.id}")) { Text("삭제") }
+                        }
+                    }
+                }
+            }
+        }
+        PrimaryAction("안전 메모 추가", onAdd, Modifier.fillMaxWidth().testTag("add_safety_memo"))
+    }
+}
+
+/** Local-only safety memo form; values never leave the device. */
+@Composable
+private fun SafetyMemoDialog(
+    tripId: String,
+    initial: SafetyMemoEntity?,
+    onDismiss: () -> Unit,
+    onConfirm: (String, SafetyCategory, String, String, String?, String?) -> Unit,
+) {
+    var category by remember { mutableStateOf(initial?.category ?: SafetyCategory.DOCUMENTS) }
+    var title by remember { mutableStateOf(initial?.title ?: "") }
+    var note by remember { mutableStateOf(initial?.note ?: "") }
+    var contactLabel by remember { mutableStateOf(initial?.contactLabel ?: "") }
+    var contactValue by remember { mutableStateOf(initial?.contactValue ?: "") }
+    TripFormSheet(
+        title = if (initial == null) "안전 메모 추가" else "안전 메모 수정",
+        confirmLabel = "저장",
+        onConfirm = { onConfirm(tripId, category, title, note, contactLabel.ifBlank { null }, contactValue.ifBlank { null }) },
+        onDismiss = onDismiss,
+        confirmEnabled = title.isNotBlank(),
+        confirmTag = "confirm_safety_memo",
+    ) { fieldModifier ->
+        Column(fieldModifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("분류", style = MaterialTheme.typography.labelLarge)
+            SafetyCategory.entries.forEach { candidate ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = category == candidate, role = Role.RadioButton, interactionSource = null, indication = null) { category = candidate },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = category == candidate, onClick = { category = candidate })
+                    Text(candidate.label, Modifier.padding(start = 6.dp))
+                }
+            }
+            // Children take fillMaxWidth only: fieldModifier carries the sheet's
+            // verticalScroll, and a scrollable text field breaks measurement.
+            OutlinedTextField(title, { title = it }, label = { Text("제목") }, modifier = Modifier.fillMaxWidth().testTag("safety_memo_title"))
+            OutlinedTextField(note, { note = it }, label = { Text("메모") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(contactLabel, { contactLabel = it }, label = { Text("연락처 이름 (예: 카드사 공식 앱)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(contactValue, { contactValue = it }, label = { Text("연락값 (번호·링크, 200자 이내)") }, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/** Opt-in post-trip windows. Empty windows stay neutral, never "incomplete". */
+@Composable
+private fun PostTripWindowSection(
+    postTripPreparation: List<PreparationItemEntity>,
+    onApplyPack: (PostTripWindow) -> Unit,
+    onAddItem: (PostTripWindow) -> Unit,
+    onTogglePreparation: (PreparationItemEntity) -> Unit,
+    onSkipPreparation: (String) -> Unit,
+    onDeletePreparation: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("귀국 후", style = MaterialTheme.typography.titleMedium)
+        Text("귀국 후 팩은 자동으로 추가되지 않습니다. 필요한 시점만 골라 담으세요.", style = MaterialTheme.typography.bodySmall)
+        PostTripWindow.entries.forEach { window ->
+            val items = postTripPreparation.filter { it.postTripWindow == window }
+            val done = items.count { it.status == PreparationStatus.DONE || it.status == PreparationStatus.SKIPPED }
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("post_trip_window_${window.name.lowercase()}")
+                    .semantics { contentDescription = "${postTripWindowLabel(window)}, ${items.size}개 중 ${done}개 완료" },
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text(postTripWindowLabel(window), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                if (items.isEmpty()) "선택 팩을 추가하지 않으면 표시되지 않습니다."
+                                else "${items.size}개 중 ${done}개 완료",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                    items.forEach { item ->
+                        val metadata = ReadinessTemplateCatalog.displayMetadata(ChecklistType.PREPARATION, item.templateId, item.title)
+                        ChecklistRow(
+                            title = item.title,
+                            group = postTripWindowLabel(item.postTripWindow ?: PostTripWindow.LATER),
+                            detail = metadata.hint,
+                            state = if (item.status == PreparationStatus.SKIPPED) "건너뜀" else originLabel(item.origin),
+                            checked = item.status == PreparationStatus.DONE,
+                            onChecked = { onTogglePreparation(item) },
+                            onSkip = { onSkipPreparation(item.id) },
+                            onDelete = { onDeletePreparation(item.id) },
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { onApplyPack(window) },
+                            modifier = Modifier.weight(1f).testTag("add_post_trip_pack_${window.name.lowercase()}"),
+                            shape = TripPilotActionShape,
+                        ) { Text("이 시점 팩 추가") }
+                        TextButton(
+                            onClick = { onAddItem(window) },
+                            modifier = Modifier.testTag("add_post_trip_item_${window.name.lowercase()}"),
+                        ) { Text("직접 추가") }
+                    }
+                }
+            }
         }
     }
 }
@@ -1310,9 +1610,12 @@ private fun journeyStages(
     startDate = trip.startDate,
     endDate = trip.endDate,
     itineraryCountByDate = itinerary.groupingBy { it.date }.eachCount(),
-    readinessTotal = preparation.size + packing.size,
-    readinessPending = preparation.count { it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED } +
+    readinessTotal = preparation.count { it.postTripWindow == null } + packing.size,
+    readinessPending = preparation.count { it.postTripWindow == null && it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED } +
         packing.count { !it.isPacked },
+    // Only items the user opted into as post-trip count toward the post stage.
+    postTripTotal = preparation.count { it.postTripWindow != null },
+    postTripPending = preparation.count { it.postTripWindow != null && it.status != PreparationStatus.DONE && it.status != PreparationStatus.SKIPPED },
 )
 
 private fun stageSummary(stages: List<JourneyStage>, selectedStageId: String): String =

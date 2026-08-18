@@ -23,7 +23,8 @@ class TravelModelsTest {
 
     @Test
     fun `scope templates do not infer a country from destination text`() {
-        assertEquals(TravelScopeTemplates.items(TravelScope.AUTO).size, 4)
+        // AUTO required pack grew to 5 with EMERGENCY_CONTACT_COPY (gap doc §1).
+        assertEquals(TravelScopeTemplates.items(TravelScope.AUTO).size, 5)
         assertTrue(TravelScopeTemplates.items(TravelScope.DOMESTIC).any { it.title == "신분증" })
         assertTrue(TravelScopeTemplates.items(TravelScope.INTERNATIONAL).any { it.title == "여권 유효기간 확인" })
     }

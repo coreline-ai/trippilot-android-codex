@@ -50,4 +50,18 @@ class JourneyStageCalculatorTest {
         assertEquals(JourneyStageState.EMPTY, pre.state)
         assertTrue(pre.detail.contains("없음"))
     }
+    @Test
+    fun `post stage stays neutral until the user opts into a window pack`() {
+        val neutral = JourneyStageCalculator.calculate("2026-11-01", "2026-11-03", emptyMap(), 0, 0)
+        val neutralPost = neutral.last()
+        assertEquals(JourneyStageState.UPCOMING, neutralPost.state)
+        assertEquals("선택 팩", neutralPost.detail)
+
+        val pending = JourneyStageCalculator.calculate("2026-11-01", "2026-11-03", emptyMap(), 0, 0, postTripTotal = 4, postTripPending = 3)
+        assertEquals(JourneyStageState.ACTION_REQUIRED, pending.last().state)
+        assertEquals("정리 3개 남음", pending.last().detail)
+
+        val done = JourneyStageCalculator.calculate("2026-11-01", "2026-11-03", emptyMap(), 0, 0, postTripTotal = 4, postTripPending = 0)
+        assertEquals(JourneyStageState.COMPLETE, done.last().state)
+    }
 }

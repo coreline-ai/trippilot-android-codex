@@ -228,4 +228,27 @@ interface TripDao {
 
     @Query("DELETE FROM pending_reservation_shares WHERE id = :shareId")
     suspend fun consumeShare(shareId: String)
+
+    @Query("SELECT * FROM safety_memos WHERE tripId = :tripId ORDER BY category, updatedAtEpochMs DESC")
+    fun observeSafetyMemos(tripId: String): Flow<List<SafetyMemoEntity>>
+
+    @Query("SELECT * FROM safety_memos WHERE tripId = :tripId")
+    suspend fun safetyMemosForTrip(tripId: String): List<SafetyMemoEntity>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertSafetyMemo(entity: SafetyMemoEntity)
+
+    @Query("UPDATE safety_memos SET category = :category, title = :title, note = :note, contactLabel = :contactLabel, contactValue = :contactValue, updatedAtEpochMs = :updatedAtEpochMs WHERE id = :memoId")
+    suspend fun updateSafetyMemo(
+        memoId: String,
+        category: io.trippilot.app.core.model.SafetyCategory,
+        title: String,
+        note: String,
+        contactLabel: String?,
+        contactValue: String?,
+        updatedAtEpochMs: Long,
+    )
+
+    @Query("DELETE FROM safety_memos WHERE id = :memoId")
+    suspend fun deleteSafetyMemo(memoId: String)
 }

@@ -39,12 +39,25 @@ object JourneyStageCalculator {
         itineraryCountByDate: Map<String, Int>,
         readinessTotal: Int,
         readinessPending: Int,
+        postTripTotal: Int = 0,
+        postTripPending: Int = 0,
     ): List<JourneyStage> {
         val dates = datesInRange(startDate, endDate)
         val preState = when {
             readinessTotal == 0 -> JourneyStageState.EMPTY
             readinessPending == 0 -> JourneyStageState.COMPLETE
             else -> JourneyStageState.ACTION_REQUIRED
+        }
+        // Post-trip stage stays neutral ("선택 팩") until the user opts into a
+        // window pack; an unselected pack is neither complete nor incomplete.
+        val postState = when {
+            postTripTotal == 0 -> JourneyStageState.UPCOMING
+            postTripPending == 0 -> JourneyStageState.COMPLETE
+            else -> JourneyStageState.ACTION_REQUIRED
+        }
+        val postDetail = when {
+            postTripTotal == 0 -> "선택 팩"
+            else -> "정리 ${postTripPending.coerceAtLeast(0)}개 남음"
         }
         return buildList {
             add(
@@ -70,7 +83,7 @@ object JourneyStageCalculator {
                     ),
                 )
             }
-            add(JourneyStage(POST_STAGE_ID, "귀국 후", "선택 팩", JourneyStageState.UPCOMING))
+            add(JourneyStage(POST_STAGE_ID, "귀국 후", postDetail, postState))
         }
     }
 

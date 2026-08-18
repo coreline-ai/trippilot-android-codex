@@ -20,7 +20,7 @@ class TripBackupCodecTest {
     @Test
     fun `rejects incorrect schema version and oversized payload`() {
         assertFalse(TripBackupCodec.decode("""{"schema":"wrong","version":1,"trips":[]}""").isSuccess)
-        assertFalse(TripBackupCodec.decode("""{"schema":"trippilot.trip-backup","version":3,"trips":[]}""").isSuccess)
+        assertFalse(TripBackupCodec.decode("""{"schema":"trippilot.trip-backup","version":4,"trips":[]}""").isSuccess)
         assertFalse(TripBackupCodec.decode("x".repeat(TripBackupCodec.MAX_BYTES + 1)).isSuccess)
     }
 
@@ -50,7 +50,7 @@ class TripBackupCodecTest {
     }
 
     @Test
-    fun `v2 round trip preserves valid template ids and rejects unknown template ids`() {
+    fun `v3 round trip preserves template ids post trip windows and safety memos`() {
         val document = TripBackupDocument(
             trips = listOf(
                 TripBackupTrip(
@@ -62,19 +62,62 @@ class TripBackupCodecTest {
                             "DEFAULT",
                             ChecklistTemplateId.PLAN_AND_RESERVATION_CHECK.name,
                         ),
+                        TripBackupPreparation(
+                            "귀국 후 영수증 정리",
+                            "TODO",
+                            "MANUAL",
+                            ChecklistTemplateId.POST_TRIP_RECEIPTS.name,
+                            "WITHIN_ONE_WEEK",
+                        ),
+                    ),
+                    safetyMemos = listOf(
+                        TripBackupSafetyMemo("PAYMENT", "카드사 공식 앱", "분실 시 차단 순서 메모", "카드사", "공식 앱 링크"),
                     ),
                 ),
             ),
         )
         val decoded = TripBackupCodec.decode(TripBackupCodec.encode(document)).getOrThrow()
-        assertEquals(2, decoded.version)
-        assertEquals(ChecklistTemplateId.PLAN_AND_RESERVATION_CHECK.name, decoded.trips.single().preparation.single().templateId)
+        assertEquals(3, decoded.version)
+        assertEquals(ChecklistTemplateId.PLAN_AND_RESERVATION_CHECK.name, decoded.trips.single().preparation.first().templateId)
+        assertEquals("WITHIN_ONE_WEEK", decoded.trips.single().preparation[1].postTripWindow)
+        assertEquals(1, decoded.trips.single().safetyMemos.size)
+        assertEquals("PAYMENT", decoded.trips.single().safetyMemos.single().category)
 
-        val invalid = document.copy(
+        val invalidTemplate = document.copy(
             trips = document.trips.map { trip ->
                 trip.copy(preparation = trip.preparation.map { it.copy(templateId = "UNKNOWN_TEMPLATE") })
             },
         )
-        assertFalse(runCatching { TripBackupCodec.encode(invalid) }.isSuccess)
+        assertFalse(runCatching { TripBackupCodec.encode(invalidTemplate) }.isSuccess)
+
+        val invalidWindow = document.copy(
+            trips = document.trips.map { trip ->
+                trip.copy(preparation = trip.preparation.map { it.copy(postTripWindow = "SOMEDAY") })
+            },
+        )
+        assertFalse(runCatching { TripBackupCodec.encode(invalidWindow) }.isSuccess)
+
+        val invalidMemo = document.copy(
+            trips = document.trips.map { trip ->
+                trip.copy(safetyMemos = listOf(TripBackupSafetyMemo("NOT_A_CATEGORY", "제목", "메모")))
+            },
+        )
+        assertFalse(runCatching { TripBackupCodec.encode(invalidMemo) }.isSuccess)
+
+        val oversizeContact = document.copy(
+            trips = document.trips.map { trip ->
+                trip.copy(safetyMemos = listOf(TripBackupSafetyMemo("PAYMENT", "제목", "메모", "라벨", "x".repeat(TripBackupCodec.MAX_CONTACT_VALUE_LENGTH + 1))))
+            },
+        )
+        assertFalse(runCatching { TripBackupCodec.encode(oversizeContact) }.isSuccess)
+    }
+
+    @Test
+    fun `v2 document with only legacy fields still decodes for restore`() {
+        val payload = """{"schema":"trippilot.trip-backup","version":2,"trips":[{"title":"서울","destination":"Seoul","startDate":"2026-10-01","endDate":"2026-10-03","timezone":"Asia/Seoul","scope":"DOMESTIC","notes":"","preparation":[{"title":"일정과 예약 확인","status":"TODO","origin":"DEFAULT"}]}]}"""
+        val decoded = TripBackupCodec.decodeForRestore(payload).getOrThrow()
+        assertEquals(2, decoded.version)
+        assertEquals(1, decoded.trips.single().preparation.size)
+        assertTrue(decoded.trips.single().safetyMemos.isEmpty())
     }
 }

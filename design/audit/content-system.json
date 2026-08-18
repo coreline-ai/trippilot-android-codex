@@ -93,6 +93,19 @@
       "testTag": "trip_area_help",
       "pages": [
         {
+          "id": "safety-hub",
+          "label": "문제 대응",
+          "testTag": "safety_hub_screen",
+          "screenTag": "safety_hub_screen",
+          "primaryAction": "add_safety_memo",
+          "macrostructure": "approval-dashboard",
+          "states": [
+            "empty",
+            "populated",
+            "form"
+          ]
+        },
+        {
           "id": "drafts",
           "label": "AI 초안",
           "testTag": "trip_subpage_help_drafts",

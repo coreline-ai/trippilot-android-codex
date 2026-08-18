@@ -6,6 +6,8 @@ import io.trippilot.app.core.model.ItemOrigin
 import io.trippilot.app.core.model.PreparationStatus
 import io.trippilot.app.core.model.RecheckResult
 import io.trippilot.app.core.model.ReservationStatus
+import io.trippilot.app.core.model.PostTripWindow
+import io.trippilot.app.core.model.SafetyCategory
 import io.trippilot.app.core.model.SourceOwnerType
 import io.trippilot.app.core.model.TravelScope
 import io.trippilot.app.core.model.TripStatus
@@ -27,4 +29,9 @@ class TripConverters {
     @TypeConverter fun stringToRecheckResult(value: String): RecheckResult = RecheckResult.valueOf(value)
     @TypeConverter fun calendarStatusToString(value: CalendarActionStatus): String = value.name
     @TypeConverter fun stringToCalendarStatus(value: String): CalendarActionStatus = CalendarActionStatus.valueOf(value)
+    // Room passes null for the nullable preparation column; the converter must accept it.
+    @TypeConverter fun postTripWindowToString(value: PostTripWindow?): String? = value?.name
+    @TypeConverter fun stringToPostTripWindow(value: String?): PostTripWindow? = value?.let(PostTripWindow::valueOf)
+    @TypeConverter fun safetyCategoryToString(value: SafetyCategory): String = value.name
+    @TypeConverter fun stringToSafetyCategory(value: String): SafetyCategory = SafetyCategory.valueOf(value)
 }

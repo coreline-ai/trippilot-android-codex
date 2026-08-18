@@ -144,6 +144,41 @@ External-confirmation boundaries
 └────────────────────────────────────┘
 ```
 
+
+### 도움 / Safety Hub (문제 대응 · 안전 메모)
+
+도움 영역 진입 panel에서만 들어가는 별도 화면. 세 번째 tab이 아니며 Back으로 기존 도움 화면에 복귀한다.
+
+```text
+┌────────────────────────────────────┐
+│ 문제 대응 · 안전 메모      [도움으로]│
+│ ⚠ 긴급 서비스가 아닙니다 (고지 패널)│
+│ 문제 유형별 일반 순서               │
+│ [여권·신분·여행 서류]      [펼치기] │
+│ [질병·부상]                [펼치기] │
+│ … (7개 카테고리)                   │
+│ 내가 저장한 연락 정보·메모           │
+│ [카드사 공식 앱 · 메모 · 출처]      │
+│ [안전 메모 추가]                    │
+└────────────────────────────────────┘
+```
+
+- 상태: empty(안내+CTA) / populated / edit(`SafetyMemoDialog` = TripFormSheet 재사용) / 출처 승인(기존 ApprovalSheet)
+- testTag: `safety_hub_screen`, `safety_hub_entry`, `safety_category_<id>`, `safety_memo_<id>`, `add_safety_memo`
+- 정적 문구와 사용자 메모는 시각적으로 분리. 연락값 tap은 복사만, 외부 열기는 승인 후
+
+### 준비 / 귀국 후 window (준비 화면 하단)
+
+```text
+│ 귀국 후                             │
+│ [귀국 후 48시간 이내  N개 중 M완료] │
+│   … 항목 … [이 시점 팩 추가][직접추가] │
+│ [귀국 후 1주 이내] [귀국 후 나중에]  │
+```
+
+- window 팩은 opt-in, template ID 기준 idempotent. 미선택 window는 완료/미완료로 표시하지 않는다
+- testTag: `post_trip_window_<window>`, `add_post_trip_pack_<window>`, `add_post_trip_item_<window>`
+
 ## Medium/expanded wireframes (600dp 이상)
 
 ```text

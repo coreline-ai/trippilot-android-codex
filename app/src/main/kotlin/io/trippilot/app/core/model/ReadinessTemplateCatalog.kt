@@ -29,8 +29,26 @@ enum class ChecklistTemplateId {
     HYGIENE_KIT,
     HEALTH_COVERAGE_CHECK,
     SLEEP_COMFORT_ITEM,
+    EMERGENCY_CONTACT_COPY,
+    BACKUP_PAYMENT_METHOD,
+    OFFLINE_MAPS_READY,
+    LOCAL_TRANSIT_APP_READY,
+    WEATHER_PROOF_STORAGE,
+    RAIN_SUN_PROTECTION,
+    INSECT_PROTECTION,
     POST_TRIP_RECEIPTS,
     POST_TRIP_RETURN_CHECK,
+    POST_TRIP_HOME_CHECK,
+    POST_TRIP_LOSS_CHECK,
+    POST_TRIP_RETURN_SERVICES,
+    POST_TRIP_URGENT_RECORDS,
+    POST_TRIP_EXPENSE_SORT,
+    POST_TRIP_COMPENSATION_CHECK,
+    POST_TRIP_DATA_BACKUP,
+    POST_TRIP_GEAR_CARE,
+    POST_TRIP_DOCUMENT_KEEP,
+    POST_TRIP_INFO_CLEANUP,
+    POST_TRIP_MEMORY_NOTES,
 }
 
 enum class ChecklistGroup(val label: String) {
@@ -51,6 +69,8 @@ data class ReadinessTemplate(
     val hint: String,
     val scopes: Set<TravelScope>,
     val optional: Boolean = false,
+    // Post-trip templates carry their window; null keeps an item pre-trip/general.
+    val postTripWindow: PostTripWindow? = null,
 )
 
 data class ReadinessDisplayMetadata(
@@ -98,9 +118,26 @@ object ReadinessTemplateCatalog {
         ReadinessTemplate(ChecklistTemplateId.HYGIENE_KIT, ChecklistType.PACKING, ChecklistGroup.HEALTH_HYGIENE, "위생 용품", "개인에게 필요한 위생 물품만 챙깁니다.", allScopes, optional = true),
         ReadinessTemplate(ChecklistTemplateId.HEALTH_COVERAGE_CHECK, ChecklistType.PREPARATION, ChecklistGroup.HEALTH_HYGIENE, "건강 관련 보장 확인", "필요 시 본인 보험 또는 서비스 약관을 직접 확인합니다.", allScopes, optional = true),
         ReadinessTemplate(ChecklistTemplateId.SLEEP_COMFORT_ITEM, ChecklistType.PACKING, ChecklistGroup.HEALTH_HYGIENE, "개인 수면 용품", "장거리 이동이나 숙박에서 필요할 때만 추가합니다.", allScopes, optional = true),
+        ReadinessTemplate(ChecklistTemplateId.EMERGENCY_CONTACT_COPY, ChecklistType.PREPARATION, ChecklistGroup.DOCUMENTS_ENTRY, "비상 연락처 오프라인 사본", "여행 중 확인할 비상 연락처를 오프라인으로도 볼 수 있는 곳에 적어 둡니다.", allScopes),
+        ReadinessTemplate(ChecklistTemplateId.BACKUP_PAYMENT_METHOD, ChecklistType.PREPARATION, ChecklistGroup.MONEY_PAYMENT, "예비 결제 수단", "결제 수단에 문제가 생겼을 때를 대비해 다른 수단을 준비합니다.", allScopes, optional = true),
+        ReadinessTemplate(ChecklistTemplateId.OFFLINE_MAPS_READY, ChecklistType.PREPARATION, ChecklistGroup.CONNECTIVITY_ELECTRONICS, "오프라인 지도 준비", "이동에 필요한 지도를 오프라인에서도 열 수 있게 미리 준비합니다.", allScopes, optional = true),
+        ReadinessTemplate(ChecklistTemplateId.LOCAL_TRANSIT_APP_READY, ChecklistType.PREPARATION, ChecklistGroup.CONNECTIVITY_ELECTRONICS, "이동 앱·티켓 확인", "이동에 쓸 앱과 티켓을 미리 확인합니다.", allScopes, optional = true),
+        ReadinessTemplate(ChecklistTemplateId.WEATHER_PROOF_STORAGE, ChecklistType.PACKING, ChecklistGroup.CLOTHING_FIELD, "방수·보관 수단", "물·습기에 민감한 물품의 보관 수단을 확인합니다.", allScopes, optional = true),
+        ReadinessTemplate(ChecklistTemplateId.RAIN_SUN_PROTECTION, ChecklistType.PACKING, ChecklistGroup.CLOTHING_FIELD, "우천·햇빛 대비", "개인 필요에 따라 우산·모자 등 대비 물품을 준비합니다.", allScopes, optional = true),
+        ReadinessTemplate(ChecklistTemplateId.INSECT_PROTECTION, ChecklistType.PACKING, ChecklistGroup.HEALTH_HYGIENE, "벌레 대비", "필요 시 개인 기준으로 벌레 대비 물품을 준비합니다.", allScopes, optional = true),
 
-        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_RECEIPTS, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "귀국 후 영수증 정리", "필요한 기록만 귀국 후 직접 정리합니다.", allScopes, optional = true),
-        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_RETURN_CHECK, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "귀국 후 반납·정리 확인", "대여품·개인 물품의 반납 여부를 직접 확인합니다.", allScopes, optional = true),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_RECEIPTS, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "귀국 후 비용·영수증 정리", "필요한 기록만 귀국 후 직접 정리합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_ONE_WEEK),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_RETURN_CHECK, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "귀국 후 반납·정리 확인", "대여품·개인 물품의 반납 여부를 직접 확인합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_48_HOURS),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_HOME_CHECK, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "귀가 지갑·서류·장비 확인", "귀가 후 지갑·서류·장비를 제자리에서 직접 확인합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_48_HOURS),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_LOSS_CHECK, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "분실·파손 확인", "분실·파손된 물품이 있는지 귀가 후 직접 확인합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_48_HOURS),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_RETURN_SERVICES, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "대여품·임시 서비스 반납", "대여품과 임시로 쓴 서비스의 반납·해지를 직접 처리합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_48_HOURS),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_URGENT_RECORDS, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "즉시 필요한 영수증·기록 확보", "기한이 있는 영수증·기록을 먼저 확보합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_48_HOURS),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_COMPENSATION_CHECK, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "보상·보험 신청 필요 여부 확인", "신청 필요 여부와 기한은 본인 증권·공식 출처에서 직접 확인합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_ONE_WEEK),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_DATA_BACKUP, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "사진·데이터 백업", "여행 중 만든 사진·데이터를 개인 저장소에 백업합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_ONE_WEEK),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_GEAR_CARE, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "장비 정리", "사용한 장비를 점검하고 정리합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.WITHIN_ONE_WEEK),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_DOCUMENT_KEEP, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "서류 보관", "남길 서류와 폐기할 서류를 구분해 보관합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.LATER),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_INFO_CLEANUP, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "불필요한 공유·예약 정보 정리", "더 필요 없는 공유 기록·예약 정보를 직접 정리합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.LATER),
+        ReadinessTemplate(ChecklistTemplateId.POST_TRIP_MEMORY_NOTES, ChecklistType.PREPARATION, ChecklistGroup.POST_TRIP, "여행 메모·다음 여행 참고 정리", "다음 여행에 참고할 메모를 직접 정리합니다.", allScopes, optional = true, postTripWindow = PostTripWindow.LATER),
     )
 
     fun requiredItems(scope: TravelScope): List<ReadinessTemplate> = items(scope, optional = false)
@@ -108,6 +145,10 @@ object ReadinessTemplateCatalog {
     fun optionalGroups(scope: TravelScope): List<ChecklistGroup> = optionalItems(scope).map { it.group }.distinct()
     fun optionalItems(scope: TravelScope, group: ChecklistGroup): List<ReadinessTemplate> =
         optionalItems(scope).filter { it.group == group }
+
+    /** Post-trip pack templates for a window; never auto-applied. */
+    fun postTripItems(window: PostTripWindow): List<ReadinessTemplate> =
+        all.filter { it.postTripWindow == window }
 
     fun find(id: String?): ReadinessTemplate? = id?.let { raw ->
         all.firstOrNull { it.id.name == raw }

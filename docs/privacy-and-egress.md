@@ -29,6 +29,8 @@
 - **알림**: 사용자가 알림 설정과 Android notification permission을 모두 승인한 경우에만 D-7~D-1 미완료 항목을 하루 한 번 알린다. boot/package update 후에도 Room 설정을 기준으로 다시 예약한다. 권한 거부 시 알림을 보내거나 기록하지 않는다.
 - 앱은 analytics SDK·자체 서버를 포함하지 않는다. `INTERNET` permission은 사용자가 명시적으로 시작한 Codex runtime/OAuth 경로에만 필요하며, Android cloud backup/D2D는 차단하고 cleartext traffic을 허용하지 않는다. 앱 코드에서 AI 원문, OAuth 정보, 여행 민감 텍스트를 `Log` 또는 `println`으로 출력하지 않는다.
 
+- **안전 메모(Safety Hub)**: 사용자 연락값·메모는 Room 로컬에만 저장되며 debug log, analytics, AI prompt, 알림 본문, backup v3 외 어떤 경로로도 나가지 않는다. 연락값 탭은 클립보드 복사만 하고 전화·브라우저·지도 실행은 기존 확인 창 승인 후에만 한다. 정적 문제 대응 문구는 기관 번호·국가별 사실을 포함하지 않는다.
+
 ## 화면 캡처 정책
 
 Device OAuth 화면은 TripPilot의 transient Device Code card와 사용자가 연 외부 브라우저다. token/password는 TripPilot 화면에 표시되지 않는다. 사용자가 자신의 여행 계획을 공유할 수 있도록 전체 앱 `FLAG_SECURE`는 적용하지 않으며, 실제 OAuth 승인 화면의 캡처 정책은 Android/browser 소유 설정을 따른다.

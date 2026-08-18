@@ -12,9 +12,23 @@ enum class ItemOrigin { DEFAULT, MANUAL, AI }
 
 enum class ReservationStatus { DRAFT, CONFIRMED, CANCELLED }
 
-enum class SourceOwnerType { ITINERARY, RESERVATION }
+enum class SourceOwnerType { ITINERARY, RESERVATION, SAFETY_MEMO }
 
 enum class RecheckResult { UNCHANGED, CHANGED, FAILED }
+
+/** Post-trip follow-up windows; null on a preparation item means pre-trip/general. */
+enum class PostTripWindow { WITHIN_48_HOURS, WITHIN_ONE_WEEK, LATER }
+
+/** Static problem-response categories; labels carry only general guidance. */
+enum class SafetyCategory(val label: String) {
+    DOCUMENTS("여권·신분·여행 서류"),
+    HEALTH("질병·부상"),
+    THEFT_LOSS("도난·분실"),
+    PAYMENT("카드·현금·결제"),
+    TRANSPORT_DELAY("교통·예약·항공 지연"),
+    CONNECTIVITY("휴대폰·통신"),
+    WEATHER_FIELD("기상·현장 상황"),
+}
 
 enum class CalendarActionStatus { REVIEW_REQUIRED, APPROVED, EXECUTED, FAILED, REJECTED }
 

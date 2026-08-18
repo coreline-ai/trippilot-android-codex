@@ -26,7 +26,7 @@ object TripPilotModule {
         context,
         TripPilotDatabase::class.java,
         "trippilot.db",
-    ).addMigrations(TripPilotDatabase.MIGRATION_1_2).build()
+    ).addMigrations(TripPilotDatabase.MIGRATION_1_2, TripPilotDatabase.MIGRATION_2_3).build()
 
     @Provides
     fun provideTripDao(database: TripPilotDatabase): TripDao = database.tripDao()
