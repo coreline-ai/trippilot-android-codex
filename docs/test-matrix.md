@@ -173,3 +173,42 @@
 | T-HMK-5-02 | QA 러너 회귀 (dry-path) | `DESIGN_LOOP_SKIP_EMULATOR=1 scripts/run_android_design_qa.sh` | PASS | 2026-08-17; 신규 게이트 자동 포함 확인 |
 | T-HMK-6-01 | 초안 반영 LOADING 연결 + 이중 탭 차단 | `DraftUiState.Applying`; `./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest` | PASS | 2026-08-17; 반영 버튼 LOADING("…"), 버리기 비활성. 기존 unit/androidTest 회귀 없음 |
 | T-HMK-6-02 | 승인 시트 상태 연결 (Calendar LOADING·handoff ERROR) | `calendarWriting` StateFlow; `compileDebugKotlin/AndroidTestKotlin`, `testDebugUnitTest` | PASS | 2026-08-17; Calendar 이중 승인 compareAndSet 차단, handoff 실패 시 "다시 시도" ERROR 유지 |
+
+## 2026-08-17 준비물 gap·문제 대응·귀국 후 (T-SAFETY)
+
+dev-plan `implement_20260817_230622.md`. Room v3 비파괴 migration, ProblemResponseCatalog 7카테고리, Safety Hub, 귀국 후 3 window 선택 팩. emulator/실기기 실행 항목은 환경 확보 후 NOT RUN 해제.
+
+| ID | 검증 | 환경 / 명령 | 결과 | 증거 |
+|---|---|---|---|---|
+| T-SAFETY-1-01 | gap matrix·7카테고리·window 경계 확정 | `docs/readiness-safety-posttrip-gap.md` | PASS | 2026-08-17; 참조 29항목 전수 판정(적용/보강/선택/제외), 금지 문구 목록 |
+| T-SAFETY-1-02 | 정적 계약 회귀 | `python3 scripts/verify_phase0_design.py`; `verify_design_contract.py` | PASS | 대비·매니페스트·게이트 무회귀 |
+| T-SAFETY-2-01 | backup v1/v2 read, v3 round-trip, malformed 거부 | `:app:testDebugUnitTest` TripBackupCodecTest | PASS | v3 window·safety memo 왕복, unknown enum·oversize contact 거부. v2 legacy 필드만 문서 decode 확인 |
+| T-SAFETY-2-02 | schema v3 export + MIGRATION_2_3 | `app/schemas/.../3.json`; `TripDatabaseMigrationTest` | PASS (compile) / NOT RUN (emulator) | 기존 row 보존·safety_memos 생성 검증 코드 작성. 실행은 disposable emulator 대기 |
+| T-SAFETY-3-01 | 카탈로그 보강·금지 문구·window 매핑 | `ReadinessTemplateCatalogTest`, `TravelModelsTest`, `JourneyStageCalculatorTest` | PASS | 신규 7+11 template, 국가/번호/기관 단정 부재 static assertion, post stage 중립성(선택 팩) 검증 |
+| T-SAFETY-4-01 | Safety Hub·귀국 후 UI 컴파일·단위 회귀 | `:app:compileDebugKotlin`, `compileDebugAndroidTestKotlin`, `testDebugUnitTest` | PASS | Help 2탭 유지 + 진입 panel, post-trip window group, 귀국 후 브리핑 CTA |
+| T-SAFETY-5-01 | 전체 로컬 게이트 | `:app:lintDebug :app:assembleDebug`; `verify_design_contract.py` | PASS | BUILD SUCCESSFUL; slop gates 3/4/5/10/12/15 PASS; content-system safety-hub 등록 |
+| T-SAFETY-5-02 | emulator suite (migration·UI·screenshot) | API 35 emulator | NOT RUN | 이 환경에 emulator 없음. T-LOOP-5-04와 동일 제약 |
+| T-SAFETY-2-02R | MIGRATION_2_3 실측 (API 26 emulator) | `connectedDebugAndroidTest` TripDatabaseMigrationTest | PASS | 2026-08-18; 기존 preparation/packing row·templateId 보존, postTripWindow NULL, safety_memos 생성·FK 확인 |
+| T-SAFETY-4-02 | Safety Hub·귀국 후 팩 UI 실측 | SafetyHubUiTest (API 26 emulator) | PASS | 2026-08-18; 7카테고리·빈 상태·메모 저장·도움 2탭 복귀·48시간 팩 idempotent. 도중 발견한 실제 결함 2건 수정: nullable converter NPE, 다이얼로그 필드 중첩 verticalScroll |
+| T-SAFETY-5-02R | 전체 앱 계측 suite (골든 제외) | 22 tests, API 26 emulator | PASS | 2026-08-18; smoke·draft·external·accessibility 2종·share·repository(신규 invalidation 테스트 포함)·migration·layout matrix·token contract |
+| T-LOOP-5-04R | Design Journey 재캡처 (API 35) | `run_design_journey_capture.sh` | PASS | 2026-08-18; 고정 날짜 fixture로 01–08 재생성 (app/build/reports/qa/design-journey) |
+| T-POP-5-04R | golden 05/06 생성 + verify | `run_phase5_screenshot_golden.sh update/verify` | PASS (사람 승인 대기) | 2026-08-18; 05-itinerary·06-readiness 신규 생성, verify OK. 커밋 전 사용자 육안 승인 필요 |
+| T-HMK-4-01R | 320/360/414dp 매트릭스 실측 | DesignLayoutMatrixTest (API 26) | PASS | 2026-08-18; NOT RUN 해제 |
+
+## 2026-08-18 완전 예시 데이터셋·풀 검증 (T-EXAMPLE)
+
+`ExampleTripData`(3여행 완전 데이터셋) + populated 회귀 + 백업 왕복. 시드는 수동 도구(`ExampleTripSeed`)로 앱 싱글턴과 동일 저장소 API만 사용.
+
+| ID | 검증 | 환경 / 명령 | 결과 | 증거 |
+|---|---|---|---|---|
+| T-EXAMPLE-0-01 | 14개 격차 전수 채움 검증 | PD20 실DB sqlite 감사 | PASS | all-day·endMinute 일정, SKIPPED·AI origin 준비, DRAFT/CANCELLED 예약, 재확인 1, 알림 1, Calendar 이력 2, 임시 공유 1, 선택팩 31종, 지난 여행(부산), 국제 여행(도쿄). 잔여: TripStatus PLANNED 표시(UI 영향 없음) |
+| T-EXAMPLE-1-01 | Seed v2 적용 | 에뮬레이터 + PD20 `am instrument` | PASS | 양쪽 기기 3여행·전 항목 확인. uninstall/clear 0건 |
+| T-EXAMPLE-2-01 | 화면 풀 캡처 48장 | light 12 + dark 12 + 2.0x 12 (에뮬레이터), PD20 12 | PASS | /tmp/full-capture; 목록 3여행·귀국후 CTA·일정 all-day·준비 window·예약 3상태·출처 재확인·Safety Hub |
+| T-EXAMPLE-3-01 | populated 회귀 4종 | `PopulatedExampleUiTest` (API 26) | PASS | 목록 3여행·지난 여행 귀국후 CTA·제주 전 영역(일정 날짜 선택·window 3종·AI항목·Safety Hub 메모)·도쿄 국제 필수항목(데이터 레벨) |
+| T-EXAMPLE-3-02 | 전체 suite 회귀 | 22 tests | PASS | smoke·safety hub·populated·repository·roundtrip·migration·layout·token 전부 |
+| T-EXAMPLE-4-01 | 백업 왕복 (전체 데이터셋) | `BackupRoundTripInstrumentedTest` | PASS | encode→decode v3→restore 새 사본: 여행 3·일정 all-day 포함·예약 상태·준비 상태/window·짐·안전 메모(연락값) 보존 + 재시드 idempotent |
+
+### 발견·수정 사항
+- 시드 도구의 KDoc 백슬래시가 kapt stub을 파손 → 단순화
+- 별도 Room 인스턴스는 실행 중 앱에 invalidation 전파 불가 → populated 테스트는 시드 후 액티비티 재시작 구조로 해결 (Hilt EntryPoint는 앱 컴포넌트 미설치로 불가)
+- Lazy 목록 3번째 카드(도쿄)는 컴포즈 전이라 UI 어설션 불가 → 데이터 레벨 검증으로 대체
