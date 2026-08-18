@@ -35,6 +35,9 @@ interface TripDao {
     @Query("DELETE FROM trips WHERE id = :tripId")
     suspend fun deleteTrip(tripId: String)
 
+    @Query("UPDATE trips SET status = :status, updatedAtEpochMs = :updatedAtEpochMs WHERE id = :tripId")
+    suspend fun updateTripStatus(tripId: String, status: io.trippilot.app.core.model.TripStatus, updatedAtEpochMs: Long)
+
     @Query("SELECT * FROM itinerary_items WHERE tripId = :tripId ORDER BY date, startMinute, sortOrder")
     fun observeItinerary(tripId: String): Flow<List<ItineraryItemEntity>>
 

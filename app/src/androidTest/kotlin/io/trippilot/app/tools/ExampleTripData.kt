@@ -44,7 +44,7 @@ object ExampleTripData {
 
         seedJeju(repository, database)
         seedPastBusan(repository)
-        seedTokyo(repository)
+        seedTokyo(repository, database)
     }
 
     private suspend fun seedJeju(repository: TripRepository, database: TripPilotDatabase) {
@@ -158,11 +158,18 @@ object ExampleTripData {
         // One item still open so the ended trip shows the post-trip follow-up CTA.
     }
 
-    private suspend fun seedTokyo(repository: TripRepository) {
+    private suspend fun seedTokyo(repository: TripRepository, database: TripPilotDatabase) {
         repository.createTrip(TripInput(TOKYO_TITLE, "도쿄", "2026-12-24", "2026-12-27", "Asia/Tokyo", TravelScope.INTERNATIONAL, "크리스마스 도쿄 야경 투어"))
         val trip = repository.observeTrips().first().first { it.title == TOKYO_TITLE }
         repository.applyMissingScopeDefaults(trip.id, TravelScope.INTERNATIONAL)
         repository.addReservation(trip.id, "FLIGHT", "JL098", "JL098-X2", "2026-12-24 09:20", "인천 (ICN) → 하네다 (HND)", "https://example.com/flight/JL098", ReservationStatus.CONFIRMED)
         repository.addSafetyMemo(trip.id, SafetyCategory.HEALTH, "여행자 보험 연락", "현지 진료 시 증권 확인 후 청구", "보험사 앱", "https://example.com/insurer/app")
+        // Completed post-trip window + PLANNED status: the finished-journey shape
+        // where the post stage reads COMPLETE instead of ACTION_REQUIRED.
+        repository.applyPostTripPack(trip.id, PostTripWindow.LATER)
+        repository.observePreparation(trip.id).first()
+            .filter { it.postTripWindow == PostTripWindow.LATER && it.status == PreparationStatus.TODO }
+            .forEach { repository.togglePreparation(it) }
+        database.tripDao().updateTripStatus(trip.id, TripStatus.PLANNED, System.currentTimeMillis())
     }
 }
