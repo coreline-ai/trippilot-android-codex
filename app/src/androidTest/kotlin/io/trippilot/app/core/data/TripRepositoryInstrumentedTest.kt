@@ -23,6 +23,7 @@ import io.trippilot.app.integration.codex.contract.DraftReservation
 import io.trippilot.app.integration.codex.contract.ReservationType
 import io.trippilot.app.integration.codex.contract.SourceCandidate
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -214,5 +215,22 @@ class TripRepositoryInstrumentedTest {
         repository.applyOptionalReadinessPack(trip.id, TravelScope.INTERNATIONAL, ChecklistGroup.MONEY_PAYMENT)
         assertEquals(optionalCount, repository.observePreparation(trip.id).first().size)
         assertTrue(ReadinessTemplateCatalog.optionalItems(TravelScope.INTERNATIONAL, ChecklistGroup.MONEY_PAYMENT).isNotEmpty())
+    }
+    @Test
+    fun safetyMemoObserveEmitsAfterInsert() = runBlocking {
+        val input = TripInput("안전", "Busan", "2026-11-01", "2026-11-02", "Asia/Seoul", TravelScope.DOMESTIC)
+        repository.createTrip(input)
+        val trip = repository.observeTrips().first().single()
+
+        // Subscribe first: the emission after insert proves live invalidation works.
+        val emissions = mutableListOf<Int>()
+        val job = kotlinx.coroutines.GlobalScope.launch {
+            repository.observeSafetyMemos(trip.id).collect { emissions += it.size }
+        }
+        kotlinx.coroutines.delay(200)
+        repository.addSafetyMemo(trip.id, io.trippilot.app.core.model.SafetyCategory.PAYMENT, "카드사", "메모", null, null)
+        kotlinx.coroutines.delay(1_000)
+        job.cancel()
+        assertTrue("expected emission after insert, got $emissions", emissions.any { it == 1 })
     }
 }
