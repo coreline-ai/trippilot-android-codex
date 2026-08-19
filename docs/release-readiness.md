@@ -51,3 +51,13 @@
 - original debug Room content의 복구는 사용자가 제공하는 JSON backup 또는 별도 보관 파일이 있을 때만 진행한다. 빈 debug app을 이미 재설치했으므로, 근거 없는 데이터 복원·재생성은 금지한다.
 - real Device OAuth success/cancel/return/live model/stream/logout은 사용자 브라우저 로그인 승인이 필요한 별도 Gate다. credential, token, auth.json은 요청·저장·로그 출력하지 않는다.
 - signed arm64 release/AAB, 실제 Calendar account·notification permission·외부 app handoff, 배포 artifact Data safety/SBOM/legal 검토는 계속 release owner가 수행한다.
+
+## 2026-08-19 릴리즈 문서 준비 (로컬 완료)
+
+| 항목 | 문서 | 상태 |
+|---|---|---|
+| GPL-3.0 소스 제공 안내·체크리스트 | `gpl-source-offer.md` | 초안 — 법률 검토 대기 |
+| SBOM (release 구성 직접 의존성 25종 + 번들 SPDX) | `sbom.md` | 초안 — 서명 artifact 재생성 대기 |
+| Play Data safety 선언 매핑 | `data-safety.md` | 초안 — 콘솔 정책 재확인 대기 |
+| Signing 키 생성·설정 가이드 | `signing.md`, `scripts/generate_release_keystore.sh` | 준비 — 키 생성은 owner 결정 |
+| 태블릿 가로(2160×1080) 대표 캡처 | `docs/demo/tablet-landscape/` | 완료 — list·브리핑·귀국후 window |
