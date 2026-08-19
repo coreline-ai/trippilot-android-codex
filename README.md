@@ -36,43 +36,7 @@ adb shell am instrument -w -e class io.trippilot.app.tools.ExampleTripSeed \
 | 제주 치유 4박 5일 (현재) | 전 영역 완전 데이터 — 종일/종료시각 일정, 예약 3상태, 출처 3종+재확인, AI 반영 항목, 임시 공유 |
 | 도쿄 겨울 (미래·국제) | 여권·입국 요건 등 국제 필수팩, 완료된 귀국 후 window, PLANNED 상태 |
 
-### 대표 화면
-
-**여행 목록** — 과거 여행 featured(귀국 후 CTA) + 다른 여정:
-
-![여행 목록](docs/demo/01-list.png)
-
-**브리핑** — featured cover와 일자별 실데이터 stage strip:
-
-![브리핑](docs/demo/02-briefing.png)
-
-**일정** — 날짜 선택 time rail, 종일 일정 표시:
-
-![일정](docs/demo/03-itinerary-allday.png)
-
-**준비 — 귀국 후 window** — 48시간/1주/나중 시점별 옵트인 팩:
-
-![귀국 후 window](docs/demo/04-posttrip-windows.png)
-
-**보관함 — 예약 서류** — 확정/미확정/취소 상태와 확인번호:
-
-![예약 서류](docs/demo/05-reservations-statuses.png)
-
-**출처** — 재확인 기록과 함께 보관:
-
-![출처](docs/demo/06-sources-recheck.png)
-
-**도움 — Safety Hub 진입** — 두 하위 탭 위 고정 진입 패널:
-
-![도움](docs/demo/07-help.png)
-
-**Safety Hub — 문제 유형별 일반 순서** — 7개 카테고리, 기관 사실 없는 일반 문구:
-
-![Safety Hub 카테고리](docs/demo/08-safetyhub-category.png)
-
-**Safety Hub — 내 메모** — 사용자 소유 연락 정보·연결 출처(오프라인):
-
-![Safety Hub 메모](docs/demo/09-safetyhub-memos.png)
+대표 화면 캡처는 [`docs/demo/`](docs/demo/)에서 확인할 수 있습니다.
 
 ## 검증
 
