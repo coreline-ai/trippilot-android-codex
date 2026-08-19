@@ -58,6 +58,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import io.trippilot.app.R
 import io.trippilot.app.core.data.db.ItineraryItemEntity
@@ -202,6 +210,25 @@ private fun JourneyHero(trip: TripEntity?, onTripSelected: (String) -> Unit) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
+            // Destination monogram: every trip gets a distinct identity mark
+            // without any remote imagery (offline-first, design-direction §5).
+            trip?.let { current ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(56.dp)
+                        .background(TripPilotHeroScrimBottom, CircleShape)
+                        .border(1.dp, TripPilotHeroText, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        current.destination.trim().firstOrNull()?.toString().orEmpty(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = TripPilotHeroTitle,
+                    )
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -252,10 +279,23 @@ private fun TripCard(trip: TripEntity, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(trip.title, style = MaterialTheme.typography.titleLarge)
-            Text(trip.destination, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-            Text("${trip.startDate} · ${trip.endDate}", style = MaterialTheme.typography.bodyMedium)
+        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    trip.destination.trim().firstOrNull()?.toString().orEmpty(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(trip.title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${trip.destination} · ${trip.startDate} — ${trip.endDate}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             StatusChip(scopeLabel(trip.scope))
         }
     }
@@ -822,15 +862,45 @@ private fun TimelineEntry(
     onDelete: (String) -> Unit,
     onSource: (ItineraryItemEntity) -> Unit,
 ) {
+    val outlineRule = MaterialTheme.colorScheme.outlineVariant
+    val nodeColor = if (item.allDay) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier.fillMaxWidth().testTag("timeline_entry_${item.id}"),
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.width(64.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(formatMinute(item.startMinute), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Text(if (item.allDay) "하루 종일" else "시간 일정", style = MaterialTheme.typography.bodySmall)
+        Column(Modifier.width(56.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                formatMinute(item.startMinute),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                if (item.allDay) "하루 종일" else "시간 일정",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
+        // Document rail: a continuous rule with a node per entry turns the day
+        // into a boarding sequence instead of a flat list (design-direction §2).
+        Box(
+            Modifier
+                .width(14.dp)
+                .drawBehind {
+                    val cx = size.width / 2
+                    drawLine(
+                        color = outlineRule,
+                        start = Offset(cx, 0f),
+                        end = Offset(cx, size.height),
+                        strokeWidth = 2.dp.toPx(),
+                    )
+                    drawCircle(
+                        color = nodeColor,
+                        radius = 5.dp.toPx(),
+                        center = Offset(cx, 12.dp.toPx()),
+                    )
+                },
+        )
         Surface(
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -1344,32 +1414,101 @@ private fun ReservationDocumentRow(
     onSource: (ReservationEntity) -> Unit,
     onDelete: (String) -> Unit,
 ) {
+    val typeLabel = reservationDocumentTypeLabel(reservation.type)
+    val typeColor = when (reservation.type.uppercase()) {
+        "LODGING", "TOUR" -> MaterialTheme.colorScheme.secondary
+        "CAR" -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val pageBackground = MaterialTheme.colorScheme.background
+    val dashColor = MaterialTheme.colorScheme.outlineVariant
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("reservation_document_${reservation.id}"),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = MaterialTheme.shapes.large,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("${reservation.type} · ${reservation.status}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Text(reservation.provider, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("확인번호 ${reservation.confirmationCode}", style = MaterialTheme.typography.bodyLarge)
-            val detail = listOfNotNull(
-                reservation.dateTime?.takeIf(String::isNotBlank),
-                reservation.location.takeIf(String::isNotBlank),
-            ).joinToString(" · ")
-            if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodyMedium)
-            reservation.url?.let {
-                Text("연결 링크", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(shape = MaterialTheme.shapes.extraLarge, color = typeColor.copy(alpha = 0.12f)) {
+                        Text(
+                            typeLabel,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = typeColor,
+                        )
+                    }
+                    Text(reservationStatusLabel(reservation.status), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(reservation.provider, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                reservation.dateTime?.takeIf(String::isNotBlank)?.let {
+                    Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (reservation.location.isNotBlank()) {
+                    Text(reservation.location, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                reservation.url?.let {
+                    Text("연결 링크", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Row {
+                    TextButton(onClick = { onEdit(reservation) }) { Text("수정") }
+                    TextButton(onClick = { onSource(reservation) }) { Text("출처 추가") }
+                    TextButton(onClick = { onDelete(reservation.id) }) { Text("삭제") }
+                }
             }
-            Row {
-                TextButton(onClick = { onEdit(reservation) }) { Text("수정") }
-                TextButton(onClick = { onSource(reservation) }) { Text("출처 추가") }
-                TextButton(onClick = { onDelete(reservation.id) }) { Text("삭제") }
+            // Ticket stub: perforated rule + punched notches turn the row into a
+            // travel document; the confirmation code is the boarding pass number.
+            Box(
+                Modifier
+                    .width(92.dp)
+                    .fillMaxHeight()
+                    .drawBehind {
+                        drawLine(
+                            color = dashColor,
+                            start = Offset(0f, 10.dp.toPx()),
+                            end = Offset(0f, size.height - 10.dp.toPx()),
+                            strokeWidth = 2.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 6.dp.toPx())),
+                        )
+                        drawCircle(color = pageBackground, radius = 9.dp.toPx(), center = Offset(0f, 0f))
+                        drawCircle(color = pageBackground, radius = 9.dp.toPx(), center = Offset(0f, size.height))
+                    }
+                    .padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("확인번호", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        reservation.confirmationCode,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
     }
+}
+
+private fun reservationDocumentTypeLabel(type: String): String = when (type.uppercase()) {
+    "FLIGHT" -> "항공권"
+    "LODGING" -> "숙박권"
+    "CAR" -> "렌터카권"
+    "TRAIN" -> "승차권"
+    "TOUR" -> "티켓"
+    else -> "서류"
+}
+
+private fun reservationStatusLabel(status: ReservationStatus): String = when (status) {
+    ReservationStatus.CONFIRMED -> "확정"
+    ReservationStatus.DRAFT -> "미확정"
+    ReservationStatus.CANCELLED -> "취소"
 }
 
 @Composable
