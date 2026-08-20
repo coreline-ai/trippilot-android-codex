@@ -6,17 +6,14 @@
 Onboarding
  └─ Trips
      ├─ Create / Edit Trip
-     └─ Trip Brief
-         ├─ 여정
-         │   ├─ 브리핑
-         │   └─ 일정
+     └─ Trip Home
+         ├─ 다음 행동 / 다음 일정
          ├─ 준비
-         ├─ 보관함
-         │   ├─ 예약 / 공유 예약 텍스트
-         │   └─ 출처
-         └─ 도움
+         ├─ 보관함 (예약 · 출처 · 공유 예약 텍스트)
+         └─ 더보기
              ├─ AI 초안 (요청 · 검토 · 선택 반영)
-             └─ 외부 실행 (승인 전 미리보기)
+             ├─ 외부 실행 (승인 전 미리보기)
+             └─ 문제 대응 · 안전 메모
 Settings
  ├─ Codex connection
  ├─ Privacy & external actions
@@ -28,13 +25,41 @@ External-confirmation boundaries
  └─ JSON / ICS selection → ApprovalSheet → Storage Access Framework
 ```
 
-`Trips`는 phone 기본 시작 화면이다. Compact에서는 목록→상세 back stack을 사용하고, 600dp 이상에서는 선택적으로 list-detail pane을 사용한다. 화면의 목적 영역은 네 개로 유지하고 primary navigation에 일자별 tab을 추가하지 않는다.
+`Trips`는 phone 기본 시작 화면이다. Compact에서는 목록→여행 홈→전용 화면의 Back 흐름을 사용한다. 600dp 이상에서는 선택적으로 list-detail pane을 사용한다. `여정/준비/보관함/도움`을 동등한 고정 탭으로 표시하지 않으며, 일자 선택은 일정 화면 안에서만 쓴다.
+
+## 2026-08-20 운영 홈 레이아웃
+
+여행 홈은 다른 화면을 축소 복제하는 대시보드가 아니다. 첫 viewport에서 사용자가 **지금 처리할 한 가지**를 판단하도록 한다. 큰 cover, 2단 탭, full-width sticky CTA는 사용하지 않는다.
+
+```text
+┌────────────────────────────────────┐
+│ [목록] 제주 치유 여행         [수정][더보기]│
+│ 9/09–9/13 · 제주                        │
+│                                            │
+│ 오늘 확인할 것                            │
+│ 교통편 예약 확인                    [확인] │
+│ 항공권 확인번호를 보관함에 추가하세요       │
+│                                            │
+│ 다음 일정                                  │
+│ 9/09 09:50 · 김포공항 출발              › │
+│ 준비 6/8 · 다음 여권 유효기간           › │
+│ 예약 및 서류 2개                         › │
+└────────────────────────────────────┘
+```
+
+- 출발 전에는 미완료 준비, 여행 중에는 가장 가까운 일정, 귀국 후에는 사용자가 선택한 정리 항목이 주행동이 된다.
+- `일정`, `준비`, `보관함`은 앱 바와 자신의 데이터 본문만 갖는 전용 화면이며 Back으로 여행 홈에 돌아온다.
+- `더보기`는 AI 초안, 외부 실행, Safety Hub를 노출한다. 모든 AI·외부 실행의 검토/승인 경계는 기존과 같다.
+- 예약과 출처는 보관함 안에서 함께 읽는다. 예약 행은 유형, 상태, 확인번호, 시간/장소를 우선 보이며, 출처는 제목과 재확인 상태를 우선 보인다.
+- 600dp 이상에서는 왼쪽에 여행 목록을 고정하고 오른쪽에 선택된 전용 화면을 표시한다. 4개 목적 영역 rail은 만들지 않는다.
 
 ### Legacy contract migration
 
 이전 `RouteRibbon`은 고정된 진행 값을 그리던 legacy component다. 이번 GUI에서는 실제 데이터와 semantics를 갖는 `JourneyStageStrip`으로 교체한다. 기존 marker는 디자인 검증과 변경 이력을 위해 이 문서에만 유지하며, 새 UI는 `route_ribbon` testTag나 장식성 완료 상태에 의존하지 않는다.
 
-## Compact wireframes (360–599dp)
+## Legacy compact wireframes (historical reference)
+
+아래 기록은 2026-08-20 이전 Trip Briefing 구조의 검토 이력이다. 현재 구현과 검증 기준은 위 **운영 홈 레이아웃** 및 `design/audit/content-system.json`을 우선한다.
 
 ### 여행 목록
 
@@ -179,7 +204,7 @@ External-confirmation boundaries
 - window 팩은 opt-in, template ID 기준 idempotent. 미선택 window는 완료/미완료로 표시하지 않는다
 - testTag: `post_trip_window_<window>`, `add_post_trip_pack_<window>`, `add_post_trip_item_<window>`
 
-## Medium/expanded wireframes (600dp 이상)
+## Legacy medium/expanded wireframes (historical reference)
 
 ```text
 ┌────────────────────┬────────────────────────────────────┐

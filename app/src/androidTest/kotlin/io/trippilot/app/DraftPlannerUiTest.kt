@@ -34,8 +34,8 @@ class DraftPlannerUiTest {
             composeRule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithContentDescription("$title, Seoul, ${start}부터 ${start.plusDays(2)}").performClick()
-        composeRule.onNodeWithTag("trip_area_help").performClick()
-        composeRule.onNodeWithTag("trip_subpage_help_drafts").performClick()
+        composeRule.onNodeWithTag("open_trip_tools").performClick()
+        composeRule.onNodeWithTag("open_drafts").performClick()
         composeRule.onNodeWithTag("draft_planner_screen").assertIsDisplayed()
         composeRule.onNodeWithTag("create_fake_draft").performScrollTo().performClick()
         composeRule.waitUntil(12_000) {
@@ -58,8 +58,9 @@ class DraftPlannerUiTest {
             isApplied
         }
         composeRule.onNodeWithText("완료").performScrollTo().performClick()
-        composeRule.onNodeWithTag("trip_area_storage").performClick()
-        composeRule.onNodeWithTag("trip_subpage_storage_reservations").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_wallet").performClick()
         composeRule.onNodeWithText("Edited Hotel").assertIsDisplayed()
         composeRule.onAllNodesWithText("도착 후 동네 산책").assertCountEquals(0)
     }

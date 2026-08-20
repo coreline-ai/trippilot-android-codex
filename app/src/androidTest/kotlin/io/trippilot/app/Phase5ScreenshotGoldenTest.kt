@@ -56,8 +56,7 @@ class Phase5ScreenshotGoldenTest {
         createStableTrip()
         captureOrAssert("02-trip-summary.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_journey").performClick()
-        composeRule.onNodeWithTag("trip_subpage_journey_itinerary").performClick()
+        composeRule.onNodeWithTag("home_next_itinerary").performClick()
         composeRule.onNodeWithTag("add_itinerary").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("itinerary_title_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("itinerary_title_input").performTextInput("서울역 도착")
@@ -65,12 +64,14 @@ class Phase5ScreenshotGoldenTest {
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("서울역 도착").fetchSemanticsNodes().isNotEmpty() }
         captureOrAssert("05-itinerary.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_prepare").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_readiness").performClick()
         composeRule.onNodeWithTag("readiness_screen").assertIsDisplayed()
         captureOrAssert("06-readiness.png", composeRule.onNodeWithTag("readiness_screen"))
 
-        composeRule.onNodeWithTag("trip_area_help").performClick()
-        composeRule.onNodeWithTag("trip_subpage_help_drafts").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("open_trip_tools").performClick()
+        composeRule.onNodeWithTag("open_drafts").performClick()
         composeRule.onNodeWithTag("draft_planner_screen").assertIsDisplayed()
         composeRule.onNodeWithTag("create_fake_draft").performScrollTo().performClick()
         composeRule.waitUntil(12_000) {
@@ -78,8 +79,8 @@ class Phase5ScreenshotGoldenTest {
         }
         captureOrAssert("03-draft-review.png", composeRule.onNodeWithTag("draft_planner_screen"))
 
-        composeRule.onNodeWithTag("trip_area_help").performClick()
-        composeRule.onNodeWithTag("trip_subpage_help_external").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("open_external_actions").performClick()
         composeRule.onNodeWithTag("external_actions_section").assertIsDisplayed()
         composeRule.onNodeWithTag("backup_export_review").performScrollTo().performClick()
         composeRule.onNodeWithText("로컬 백업 내보내기").assertIsDisplayed()

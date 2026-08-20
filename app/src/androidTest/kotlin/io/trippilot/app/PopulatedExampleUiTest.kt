@@ -74,7 +74,7 @@ class PopulatedExampleUiTest {
         // Long titles ellipsize in cards; substring matching keeps this stable.
         scrollListUntilFound(title.substringBefore(" "))
         composeRule.onNodeWithText(title, substring = true).performClick()
-        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("journey_stage_strip").fetchSemanticsNodes().isNotEmpty() }
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("trip_briefing_screen").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test
@@ -99,7 +99,7 @@ class PopulatedExampleUiTest {
         openTripByTitle("제주 치유 여행 4박 5일")
 
         // Itinerary: timed items for DAY 1, then the all-day item on DAY 4.
-        composeRule.onNodeWithTag("trip_subpage_journey_itinerary").performClick()
+        composeRule.onNodeWithTag("home_next_itinerary").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("김포공항 출발").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("itinerary_date_2026-09-10").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("성산일출봉 등반").fetchSemanticsNodes().isNotEmpty() }
@@ -107,12 +107,14 @@ class PopulatedExampleUiTest {
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("제주 올레길 12코스 (자유일정)").fetchSemanticsNodes().isNotEmpty() }
 
         // Reservations: confirmed, draft, and cancelled documents render.
-        composeRule.onNodeWithTag("trip_area_storage").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_wallet").performClick()
         composeRule.onNodeWithText("대한항공 KE1225").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("카약 투어 (미확정)").performScrollTo().assertExists()
 
         // Preparation: every post-trip window group renders with progress.
-        composeRule.onNodeWithTag("trip_area_prepare").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_readiness").performClick()
         composeRule.waitUntil(15_000) {
             composeRule.onAllNodesWithTag("post_trip_window_within_48_hours").fetchSemanticsNodes().isNotEmpty()
         }
@@ -121,7 +123,8 @@ class PopulatedExampleUiTest {
         composeRule.onNodeWithText("우천 대비 접이식 우산 (AI 초안 반영)").performScrollTo().assertExists()
 
         // Safety Hub: guidance and both user memos with contact values.
-        composeRule.onNodeWithTag("trip_area_help").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("open_trip_tools").performClick()
         composeRule.onNodeWithTag("safety_hub_entry").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("safety_hub_screen").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText("카드사 해외이상거래 차단").performScrollTo().assertExists()

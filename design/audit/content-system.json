@@ -5,129 +5,100 @@
     {
       "id": "journey",
       "label": "여정",
-      "testTag": "trip_area_journey",
+      "testTag": "trip_briefing_screen",
       "pages": [
         {
-          "id": "briefing",
-          "label": "브리핑",
-          "testTag": "trip_subpage_journey_summary",
+          "id": "trip-home",
+          "label": "여행 홈",
+          "testTag": "trip_briefing_screen",
           "screenTag": "trip_briefing_screen",
           "primaryAction": "briefing_next_action",
-          "macrostructure": "cover-and-single-cta",
-          "states": [
-            "empty",
-            "populated"
-          ]
+          "macrostructure": "action-summary-sheet",
+          "states": ["empty", "pre-departure", "in-progress", "post-trip"]
         },
         {
           "id": "itinerary",
           "label": "일정",
-          "testTag": "trip_subpage_journey_itinerary",
+          "testTag": "home_next_itinerary",
           "screenTag": "trip_detail_screen",
           "primaryAction": "add_itinerary",
           "macrostructure": "time-rail-document",
-          "states": [
-            "empty",
-            "populated",
-            "form"
-          ]
+          "states": ["empty", "populated", "form"]
         }
       ]
     },
     {
       "id": "prepare",
       "label": "준비",
-      "testTag": "trip_area_prepare",
+      "testTag": "home_readiness",
       "pages": [
         {
           "id": "readiness",
           "label": "준비",
-          "testTag": "readiness_screen",
+          "testTag": "home_readiness",
           "screenTag": "readiness_screen",
           "primaryAction": "add_preparation",
           "macrostructure": "checklist-groups",
-          "states": [
-            "empty",
-            "populated",
-            "form"
-          ]
+          "states": ["empty", "populated", "form"]
         }
       ]
     },
     {
       "id": "storage",
       "label": "보관함",
-      "testTag": "trip_area_storage",
+      "testTag": "home_wallet",
       "pages": [
         {
-          "id": "reservations",
-          "label": "예약",
-          "testTag": "trip_subpage_storage_reservations",
-          "screenTag": "trip_detail_screen",
+          "id": "wallet",
+          "label": "예약 및 서류",
+          "testTag": "home_wallet",
+          "screenTag": "wallet_screen",
           "primaryAction": "add_reservation",
-          "macrostructure": "document-folder-rows",
-          "states": [
-            "empty",
-            "populated",
-            "form"
-          ]
-        },
-        {
-          "id": "sources",
-          "label": "출처",
-          "testTag": "trip_subpage_storage_sources",
-          "screenTag": "trip_detail_screen",
-          "primaryAction": "add_source_itinerary",
-          "macrostructure": "document-folder-rows",
-          "states": [
-            "empty",
-            "populated",
-            "form"
-          ]
+          "macrostructure": "document-register",
+          "states": ["empty", "populated", "form", "shared-text"]
         }
       ]
     },
     {
       "id": "help",
       "label": "도움",
-      "testTag": "trip_area_help",
+      "testTag": "open_trip_tools",
       "pages": [
+        {
+          "id": "tools",
+          "label": "도구",
+          "testTag": "open_trip_tools",
+          "screenTag": "trip_tools_screen",
+          "primaryAction": "open_drafts",
+          "macrostructure": "tool-directory",
+          "states": ["default"]
+        },
         {
           "id": "safety-hub",
           "label": "문제 대응",
-          "testTag": "safety_hub_screen",
+          "testTag": "safety_hub_entry",
           "screenTag": "safety_hub_screen",
           "primaryAction": "add_safety_memo",
-          "macrostructure": "approval-dashboard",
-          "states": [
-            "empty",
-            "populated",
-            "form"
-          ]
+          "macrostructure": "response-manual",
+          "states": ["empty", "populated", "form"]
         },
         {
           "id": "drafts",
           "label": "AI 초안",
-          "testTag": "trip_subpage_help_drafts",
+          "testTag": "open_drafts",
           "screenTag": "draft_planner_screen",
           "primaryAction": "create_fake_draft",
           "macrostructure": "review-dashboard",
-          "states": [
-            "empty",
-            "review"
-          ]
+          "states": ["empty", "review"]
         },
         {
           "id": "external",
           "label": "외부 실행",
-          "testTag": "trip_subpage_help_external",
+          "testTag": "open_external_actions",
           "screenTag": "external_actions_section",
           "primaryAction": "backup_export_review",
-          "macrostructure": "approval-dashboard",
-          "states": [
-            "populated",
-            "approval"
-          ]
+          "macrostructure": "approval-workbench",
+          "states": ["populated", "approval"]
         }
       ]
     }
@@ -140,15 +111,15 @@
     "approval": "approval_sheet",
     "empty": "empty_state",
     "macrostructures": {
-      "list": "featured-cover-rail"
+      "list": "travel-index"
     }
   },
   "journeyCaptures": [
-    "01-list-featured.png",
-    "02-summary.png",
+    "01-trip-list.png",
+    "02-trip-home.png",
     "03-itinerary.png",
     "04-readiness.png",
-    "05-reservations.png",
+    "05-wallet.png",
     "06-sources.png",
     "07-draft-review.png",
     "08-external-confirmation.png"

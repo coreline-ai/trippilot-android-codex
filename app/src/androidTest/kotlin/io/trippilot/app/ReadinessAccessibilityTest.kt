@@ -25,7 +25,7 @@ class ReadinessAccessibilityTest {
         composeRule.onNodeWithTag("confirm_trip").performClick()
         val start = LocalDate.now()
         composeRule.onNodeWithContentDescription("$title, Seoul, ${start}부터 ${start.plusDays(2)}").performClick()
-        composeRule.onNodeWithTag("trip_area_prepare").performClick()
+        composeRule.onNodeWithTag("home_readiness").performClick()
         composeRule.onNodeWithTag("checklist_group_documents_entry").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithContentDescription(
             "일정과 예약 확인, 서류 · 입국, 출발 전 시간·확인번호를 직접 대조합니다., 기본, 미완료",

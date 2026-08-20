@@ -24,8 +24,8 @@ class ExternalActionsUiTest {
         composeRule.onNodeWithTag("confirm_trip").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText(title).performClick()
-        composeRule.onNodeWithTag("trip_area_help").performClick()
-        composeRule.onNodeWithTag("trip_subpage_help_external").performClick()
+        composeRule.onNodeWithTag("open_trip_tools").performClick()
+        composeRule.onNodeWithTag("open_external_actions").performClick()
         composeRule.onNodeWithTag("external_actions_section").assertIsDisplayed()
 
         composeRule.onNodeWithTag("backup_export_review").performScrollTo().performClick()

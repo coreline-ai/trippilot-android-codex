@@ -31,10 +31,10 @@ class SafetyHubUiTest {
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("trip_form_sheet").fetchSemanticsNodes().isEmpty() }
         val start = LocalDate.now()
         composeRule.onNodeWithContentDescription("$tripTitle, Busan, ${start}부터 ${start.plusDays(2)}").performClick()
-        composeRule.onNodeWithTag("journey_stage_strip").assertIsDisplayed()
+        composeRule.onNodeWithTag("trip_briefing_screen").assertIsDisplayed()
 
-        // Help keeps two sub-tabs; the safety entry panel sits above them.
-        composeRule.onNodeWithTag("trip_area_help").performClick()
+        // Safety stays reachable from the travel tools without occupying the home viewport.
+        composeRule.onNodeWithTag("open_trip_tools").performClick()
         composeRule.onNodeWithTag("safety_hub_entry").assertIsDisplayed()
         composeRule.onNodeWithTag("safety_hub_entry").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("safety_hub_screen").fetchSemanticsNodes().isNotEmpty() }
@@ -63,11 +63,11 @@ class SafetyHubUiTest {
         // the layout mid-pass on this Compose/API level.
         composeRule.onNodeWithText("카드사 공식 앱").assertExists()
 
-        // Back returns to the regular Help screen with both tabs intact.
+        // Back returns to the tools list where review and external actions remain reachable.
         composeRule.onNodeWithTag("safety_hub_back").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("safety_hub_entry").fetchSemanticsNodes().isNotEmpty() }
-        composeRule.onNodeWithTag("trip_subpage_help_drafts").assertIsDisplayed()
-        composeRule.onNodeWithTag("trip_subpage_help_external").assertIsDisplayed()
+        composeRule.onNodeWithTag("open_drafts").assertIsDisplayed()
+        composeRule.onNodeWithTag("open_external_actions").assertIsDisplayed()
     }
 
     @Test
@@ -83,7 +83,7 @@ class SafetyHubUiTest {
         val start = LocalDate.now()
         composeRule.onNodeWithContentDescription("$tripTitle, Seoul, ${start}부터 ${start.plusDays(2)}").performClick()
 
-        composeRule.onNodeWithTag("trip_area_prepare").performClick()
+        composeRule.onNodeWithTag("home_readiness").performClick()
         val packButton = composeRule.onNodeWithTag("add_post_trip_pack_within_48_hours")
         packButton.performScrollTo().performClick()
         // Idempotent by stable template id: a second tap adds no duplicates.

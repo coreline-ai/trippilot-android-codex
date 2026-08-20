@@ -35,16 +35,16 @@ class MainActivitySmokeTest {
         composeRule.onNodeWithText(tripTitle).assertIsDisplayed()
         val start = LocalDate.now()
         composeRule.onNodeWithContentDescription("$tripTitle, Seoul, ${start}부터 ${start.plusDays(2)}").performClick()
-        composeRule.onNodeWithTag("journey_stage_strip").assertIsDisplayed()
-        composeRule.onNodeWithTag("trip_area_journey").performClick()
-        composeRule.onNodeWithTag("trip_subpage_journey_itinerary").performClick()
+        composeRule.onNodeWithTag("trip_briefing_screen").assertIsDisplayed()
+        composeRule.onNodeWithTag("home_next_itinerary").performClick()
         composeRule.onNodeWithTag("add_itinerary").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("itinerary_title_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("itinerary_title_input").performTextInput("북촌 산책")
         composeRule.onNodeWithText("추가").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("북촌 산책").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText("북촌 산책").assertIsDisplayed()
-        composeRule.onNodeWithTag("trip_area_prepare").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_readiness").performClick()
         composeRule.onNodeWithTag("add_preparation").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("simple_text_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("simple_text_input").performTextInput("여권 확인")
@@ -59,8 +59,8 @@ class MainActivitySmokeTest {
         composeRule.onNodeWithText("추가").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("카메라").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onAllNodesWithText("카메라").assertCountEquals(1)
-        composeRule.onNodeWithTag("trip_area_storage").performClick()
-        composeRule.onNodeWithTag("trip_subpage_storage_reservations").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_wallet").performClick()
         composeRule.onNodeWithTag("add_reservation").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("reservation_provider_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("reservation_provider_input").performTextInput("Trip Hotel")
@@ -68,14 +68,15 @@ class MainActivitySmokeTest {
         composeRule.onNodeWithText("저장").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("Trip Hotel").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onAllNodesWithText("Trip Hotel").assertCountEquals(1)
-        composeRule.onNodeWithTag("trip_area_journey").performClick()
-        composeRule.onNodeWithTag("trip_subpage_journey_itinerary").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_next_itinerary").performClick()
         composeRule.onNodeWithTag("add_source_itinerary").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("source_title_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("source_title_input").performTextInput("공식 안내")
         composeRule.onNodeWithTag("source_url_input").performTextInput("https://example.com/guide")
         composeRule.onNodeWithText("연결").performClick()
-        composeRule.onNodeWithTag("trip_subpage_journey_summary").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("open_trip_tools").performClick()
         composeRule.onNodeWithTag("delete_trip").performScrollTo().performClick()
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithTag("confirm_action").fetchSemanticsNodes().isNotEmpty()

@@ -66,8 +66,7 @@ class DesignJourneyCaptureTest {
         composeRule.onNodeWithContentDescription("$tripTitle, $destination, ${start}부터 ${end}").performClick()
         capture("02-summary.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_journey").performClick()
-        composeRule.onNodeWithTag("trip_subpage_journey_itinerary").performClick()
+        composeRule.onNodeWithTag("home_next_itinerary").performClick()
         composeRule.onNodeWithTag("add_itinerary").performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("itinerary_title_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("itinerary_title_input").performTextInput("아사쿠사 산책")
@@ -75,7 +74,8 @@ class DesignJourneyCaptureTest {
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("아사쿠사 산책").fetchSemanticsNodes().isNotEmpty() }
         capture("03-itinerary.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_prepare").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_readiness").performClick()
         composeRule.onNodeWithTag("add_preparation").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("simple_text_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("simple_text_input").performTextInput("여권 유효기간 확인")
@@ -87,8 +87,8 @@ class DesignJourneyCaptureTest {
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("보조 배터리").fetchSemanticsNodes().isNotEmpty() }
         capture("04-readiness.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_storage").performClick()
-        composeRule.onNodeWithTag("trip_subpage_storage_reservations").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_wallet").performClick()
         composeRule.onNodeWithTag("add_reservation").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("reservation_provider_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("reservation_provider_input").performTextInput("Field Hotel Tokyo")
@@ -96,19 +96,20 @@ class DesignJourneyCaptureTest {
         composeRule.onNodeWithText("저장").performClick()
         capture("05-reservations.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_journey").performClick()
-        composeRule.onNodeWithTag("trip_subpage_journey_itinerary").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_next_itinerary").performClick()
         composeRule.onNodeWithTag("add_source_itinerary").performScrollTo().performClick()
         composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("source_title_input").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithTag("source_title_input").performTextInput("공식 관광 안내")
         composeRule.onNodeWithTag("source_url_input").performTextInput("https://example.com/tokyo-guide")
         composeRule.onNodeWithText("연결").performClick()
-        composeRule.onNodeWithTag("trip_area_storage").performClick()
-        composeRule.onNodeWithTag("trip_subpage_storage_sources").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("home_wallet").performClick()
         capture("06-sources.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_help").performClick()
-        composeRule.onNodeWithTag("trip_subpage_help_drafts").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("open_trip_tools").performClick()
+        composeRule.onNodeWithTag("open_drafts").performClick()
         composeRule.onNodeWithTag("create_fake_draft").performScrollTo().performClick()
         composeRule.waitUntil(12_000) {
             var isReview = false
@@ -121,8 +122,8 @@ class DesignJourneyCaptureTest {
         // only the inner review form made it impossible to judge screen hierarchy.
         capture("07-draft-review.png", composeRule.onNodeWithTag("trip_detail_screen"))
 
-        composeRule.onNodeWithTag("trip_area_help").performClick()
-        composeRule.onNodeWithTag("trip_subpage_help_external").performClick()
+        composeRule.onNodeWithTag("back_to_trips").performClick()
+        composeRule.onNodeWithTag("open_external_actions").performClick()
         composeRule.onNodeWithTag("backup_export_review").performScrollTo().performClick()
         capture("08-external-confirmation.png", composeRule.onNodeWithTag("approval_sheet"))
     }
